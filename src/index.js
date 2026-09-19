@@ -20,6 +20,7 @@ app.set('io', io);
 
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/schools', require('./routes/school.routes'));
+app.use('/api/classes', require('./routes/class.routes'));
 app.use('/api/courses', require('./routes/course.routes'));
 app.use('/api/lessons', require('./routes/lesson.routes'));
 app.use('/api/assessments', require('./routes/assessment.routes'));
@@ -35,7 +36,6 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
   socket.on('join', (userId) => {
     socket.join(`user_${userId}`);
   });
@@ -55,9 +55,7 @@ io.on('connection', (socket) => {
       console.error('Message error:', err.message);
     }
   });
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
+  socket.on('disconnect', () => {});
 });
 
 const PORT = process.env.PORT || 5000;
