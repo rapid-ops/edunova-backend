@@ -21,6 +21,7 @@ app.set('io', io);
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/schools', require('./routes/school.routes'));
 app.use('/api/classes', require('./routes/class.routes'));
+app.use('/api/timetable', require('./routes/timetable.routes'));
 app.use('/api/courses', require('./routes/course.routes'));
 app.use('/api/lessons', require('./routes/lesson.routes'));
 app.use('/api/assessments', require('./routes/assessment.routes'));
@@ -36,9 +37,7 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  socket.on('join', (userId) => {
-    socket.join(`user_${userId}`);
-  });
+  socket.on('join', (userId) => socket.join(`user_${userId}`));
   socket.on('send_message', async (data) => {
     const { sender_id, receiver_id, school_id, content } = data;
     const pool = require('./config/db');
@@ -59,8 +58,6 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 module.exports = { app, io };
