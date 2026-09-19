@@ -16,7 +16,6 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// Make io accessible in routes
 app.set('io', io);
 
 app.use('/api/auth', require('./routes/auth.routes'));
@@ -29,20 +28,17 @@ app.use('/api/attendance', require('./routes/attendance.routes'));
 app.use('/api/fees', require('./routes/fee.routes'));
 app.use('/api/messages', require('./routes/message.routes'));
 app.use('/api/notifications', require('./routes/notification.routes'));
+app.use('/api/results', require('./routes/result.routes'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Edunova API running' });
 });
 
-// Socket.io
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
-
   socket.on('join', (userId) => {
     socket.join(`user_${userId}`);
-    console.log(`User ${userId} joined their room`);
   });
-
   socket.on('send_message', async (data) => {
     const { sender_id, receiver_id, school_id, content } = data;
     const pool = require('./config/db');
@@ -59,7 +55,6 @@ io.on('connection', (socket) => {
       console.error('Message error:', err.message);
     }
   });
-
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });
