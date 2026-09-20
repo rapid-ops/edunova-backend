@@ -21,8 +21,10 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.4.0",
     "multer-storage-cloudinary": "^4.0.0",
+    "pdfkit": "^0.20.2",
     "pg": "^8.11.3",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "twilio": "^6.1.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
