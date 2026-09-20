@@ -32,6 +32,7 @@ app.use('/api/fees', require('./routes/fee.routes'));
 app.use('/api/messages', require('./routes/message.routes'));
 app.use('/api/notifications', require('./routes/notification.routes'));
 app.use('/api/results', require('./routes/result.routes'));
+app.use('/api/upload', require('./routes/upload.routes'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Edunova API running' });
