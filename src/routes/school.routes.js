@@ -18,3 +18,20 @@ router.get('/subdomain/:subdomain', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Public onboarding endpoint - no auth required
+router.post('/onboard', async (req, res) => {
+  const { createSchool, findSchoolBySubdomain } = require('../models/school.model');
+  try {
+    const { name, email, phone, address, subdomain } = req.body;
+    if (!name || !email || !subdomain) {
+      return res.status(400).json({ error: 'Name, email and subdomain required' });
+    }
+    const existing = await findSchoolBySubdomain(subdomain);
+    if (existing) return res.status(400).json({ error: 'Subdomain already taken' });
+    const school = await createSchool({ name, email, phone, address, subdomain });
+    res.status(201).json({ school });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
