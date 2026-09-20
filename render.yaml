@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: edunova-backend
+    env: node
+    buildCommand: npm install
+    startCommand: node src/index.js
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: DB_HOST
+        fromDatabase:
+          name: edunova-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: edunova-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: edunova-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: edunova-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: edunova-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+
+databases:
+  - name: edunova-db
+    plan: free
