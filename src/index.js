@@ -37,6 +37,7 @@ app.use('/api/payment', require('./routes/payment.routes'));
 app.use('/api/reportcard', require('./routes/reportcard.routes'));
 app.use('/api/import', require('./routes/import.routes'));
 app.use('/api/parent', require('./routes/parent.routes'));
+app.use('/api/subscription', require('./routes/subscription.routes'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Edunova API running' });
