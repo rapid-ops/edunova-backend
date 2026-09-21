@@ -24,6 +24,10 @@ const migrate = async () => {
         password VARCHAR(255) NOT NULL,
         role VARCHAR(50) NOT NULL CHECK (role IN ('super_admin','school_admin','teacher','student','parent')),
         is_active BOOLEAN DEFAULT true,
+        avatar_url TEXT,
+        phone VARCHAR(20),
+        reset_token TEXT,
+        reset_token_expires TIMESTAMP,
         created_at TIMESTAMP DEFAULT NOW()
       );
 
@@ -139,6 +143,36 @@ const migrate = async () => {
         day_of_week VARCHAR(20) NOT NULL CHECK (day_of_week IN ('Monday','Tuesday','Wednesday','Thursday','Friday')),
         start_time TIME NOT NULL,
         end_time TIME NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS submissions (
+        id SERIAL PRIMARY KEY,
+        assessment_id INTEGER REFERENCES assessments(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        file_url TEXT NOT NULL,
+        submitted_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(assessment_id, student_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS parent_student (
+        id SERIAL PRIMARY KEY,
+        parent_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(parent_id, student_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        plan VARCHAR(50) NOT NULL DEFAULT 'basic',
+        status VARCHAR(50) DEFAULT 'trial' CHECK (status IN ('trial','active','expired','cancelled')),
+        paystack_customer_code VARCHAR(100),
+        paystack_subscription_code VARCHAR(100),
+        current_period_start TIMESTAMP,
+        current_period_end TIMESTAMP,
+        trial_ends_at TIMESTAMP DEFAULT (NOW() + INTERVAL '30 days'),
         created_at TIMESTAMP DEFAULT NOW()
       );
     `);
