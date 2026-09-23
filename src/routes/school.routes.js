@@ -35,3 +35,17 @@ router.post('/onboard', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+router.put('/:id/website', protect, authorize('super_admin','school_admin'), async (req, res) => {
+  const pool = require('../config/db');
+  const { mode, external_website_url, website_config } = req.body;
+  try {
+    const result = await pool.query(
+      `UPDATE schools SET external_website_url=$1, website_config=$2 WHERE id=$3 RETURNING *`,
+      [external_website_url, website_config, req.params.id]
+    );
+    res.json({ school: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
