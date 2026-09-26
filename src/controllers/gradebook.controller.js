@@ -1,0 +1,6 @@
+const m = require('../models/gradebook.model');
+const grade = async (req, res) => { try { const { school_id, student_id, course_id, assessment_id, score, weight, total_marks, graded_by } = req.body; if (!student_id || !course_id || !assessment_id || score === undefined) return res.status(400).json({ error: 'student_id, course_id, assessment_id, score required' }); const entry = await m.upsert({ school_id, student_id, course_id, assessment_id, score, weight, total_marks, graded_by }); res.json({ entry }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const studentGrades = async (req, res) => { try { const rows = await m.getStudentGradebook(req.params.student_id, req.params.course_id); res.json({ grades: rows }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const courseGrades = async (req, res) => { try { const rows = await m.getCourseGradebook(req.params.course_id); res.json({ grades: rows }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const gpa = async (req, res) => { try { const result = await m.getGPA(req.params.student_id, req.params.school_id); res.json(result); } catch (err) { res.status(500).json({ error: err.message }); } };
+module.exports = { grade, studentGrades, courseGrades, gpa };
