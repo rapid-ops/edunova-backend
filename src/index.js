@@ -54,6 +54,11 @@ app.use('/api/semesters', require('./routes/semester.routes'));
 app.use('/api/tickets', require('./routes/ticket.routes'));
 app.use('/api/coupons', require('./routes/coupon.routes'));
 app.use('/api/audit-logs', require('./routes/auditlog.routes'));
+app.use('/api/competencies', require('./routes/competency.routes'));
+app.use('/api/proctoring', require('./routes/proctoring.routes'));
+app.use('/api/custom-roles', require('./routes/customrole.routes'));
+app.use('/api/automations', require('./routes/automation.routes'));
+app.use('/api/scorm', require('./routes/scorm.routes'));
 app.use('/api/subscription', require('./routes/subscription.routes'));
 
 app.get('/', (req, res) => {

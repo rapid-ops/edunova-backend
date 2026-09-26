@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const { protect } = require('../middleware/auth.middleware');
+const { create, list, update, remove, assign, userRoles } = require('../controllers/customrole.controller');
+router.post('/', protect, create);
+router.get('/:school_id', protect, list);
+router.put('/:id', protect, update);
+router.delete('/:id', protect, remove);
+router.post('/assign', protect, assign);
+router.get('/user/:user_id', protect, userRoles);
+module.exports = router;

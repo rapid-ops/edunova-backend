@@ -1,0 +1,10 @@
+const m = require('../models/competency.model');
+const create = async (req, res) => { try { const c = await m.create(req.body); res.status(201).json({ competency: c }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const list = async (req, res) => { try { const competencies = await m.getBySchool(req.params.school_id); res.json({ competencies }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const link = async (req, res) => { try { await m.linkToCourse(req.body.course_id, req.body.competency_id); res.json({ message: 'Linked' }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const unlink = async (req, res) => { try { await m.unlinkFromCourse(req.params.course_id, req.params.competency_id); res.json({ message: 'Unlinked' }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const byCourse = async (req, res) => { try { const competencies = await m.getByCourse(req.params.course_id); res.json({ competencies }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const award = async (req, res) => { try { const sc = await m.awardToStudent(req.body.student_id, req.body.competency_id, req.body.level); res.json({ student_competency: sc }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const studentCompetencies = async (req, res) => { try { const competencies = await m.getStudentCompetencies(req.params.student_id); res.json({ competencies }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const remove = async (req, res) => { try { await m.remove(req.params.id); res.json({ message: 'Deleted' }); } catch (err) { res.status(500).json({ error: err.message }); } };
+module.exports = { create, list, link, unlink, byCourse, award, studentCompetencies, remove };

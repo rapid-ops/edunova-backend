@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const { protect } = require('../middleware/auth.middleware');
+const { start, flagEvent, end, byAssessment, byStudent, flagSession } = require('../controllers/proctoring.controller');
+router.post('/start', protect, start);
+router.post('/:session_id/flag', protect, flagEvent);
+router.put('/:session_id/end', protect, end);
+router.get('/assessment/:assessment_id', protect, byAssessment);
+router.get('/student/:student_id', protect, byStudent);
+router.put('/:session_id/flag-session', protect, flagSession);
+module.exports = router;

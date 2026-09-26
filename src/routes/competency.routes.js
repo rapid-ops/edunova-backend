@@ -1,0 +1,12 @@
+const router = require('express').Router();
+const { protect } = require('../middleware/auth.middleware');
+const { create, list, link, unlink, byCourse, award, studentCompetencies, remove } = require('../controllers/competency.controller');
+router.post('/', protect, create);
+router.get('/school/:school_id', protect, list);
+router.post('/link', protect, link);
+router.delete('/link/:course_id/:competency_id', protect, unlink);
+router.get('/course/:course_id', protect, byCourse);
+router.post('/award', protect, award);
+router.get('/student/:student_id', protect, studentCompetencies);
+router.delete('/:id', protect, remove);
+module.exports = router;

@@ -1,0 +1,10 @@
+const pool = require('../config/db');
+const create = async ({ school_id, name, description }) => { const r = await pool.query(`INSERT INTO competencies (school_id,name,description) VALUES ($1,$2,$3) RETURNING *`, [school_id, name, description]); return r.rows[0]; };
+const getBySchool = async (school_id) => { const r = await pool.query(`SELECT c.*,COUNT(cc.course_id) as course_count FROM competencies c LEFT JOIN course_competencies cc ON cc.competency_id=c.id WHERE c.school_id=$1 GROUP BY c.id ORDER BY c.name`, [school_id]); return r.rows; };
+const linkToCourse = async (course_id, competency_id) => { await pool.query(`INSERT INTO course_competencies (course_id,competency_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [course_id, competency_id]); };
+const unlinkFromCourse = async (course_id, competency_id) => { await pool.query(`DELETE FROM course_competencies WHERE course_id=$1 AND competency_id=$2`, [course_id, competency_id]); };
+const getByCourse = async (course_id) => { const r = await pool.query(`SELECT c.* FROM competencies c JOIN course_competencies cc ON cc.competency_id=c.id WHERE cc.course_id=$1`, [course_id]); return r.rows; };
+const awardToStudent = async (student_id, competency_id, level) => { const r = await pool.query(`INSERT INTO student_competencies (student_id,competency_id,level) VALUES ($1,$2,$3) ON CONFLICT (student_id,competency_id) DO UPDATE SET level=$3,achieved_at=NOW() RETURNING *`, [student_id, competency_id, level || 1]); return r.rows[0]; };
+const getStudentCompetencies = async (student_id) => { const r = await pool.query(`SELECT sc.*,c.name,c.description FROM student_competencies sc JOIN competencies c ON c.id=sc.competency_id WHERE sc.student_id=$1 ORDER BY sc.achieved_at DESC`, [student_id]); return r.rows; };
+const remove = async (id) => { await pool.query(`DELETE FROM competencies WHERE id=$1`, [id]); };
+module.exports = { create, getBySchool, linkToCourse, unlinkFromCourse, getByCourse, awardToStudent, getStudentCompetencies, remove };

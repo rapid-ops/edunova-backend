@@ -1,0 +1,6 @@
+const pool = require('../config/db');
+const createPackage = async ({ course_id, school_id, title, package_url, version }) => { const r = await pool.query(`INSERT INTO scorm_packages (course_id,school_id,title,package_url,version) VALUES ($1,$2,$3,$4,$5) RETURNING *`, [course_id, school_id, title, package_url, version || 'scorm_12']); return r.rows[0]; };
+const getByCourse = async (course_id) => { const r = await pool.query(`SELECT * FROM scorm_packages WHERE course_id=$1`, [course_id]); return r.rows; };
+const upsertProgress = async ({ package_id, student_id, cmi_data, completion_status, score }) => { const r = await pool.query(`INSERT INTO scorm_progress (package_id,student_id,cmi_data,completion_status,score) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (package_id,student_id) DO UPDATE SET cmi_data=$3,completion_status=$4,score=$5,updated_at=NOW() RETURNING *`, [package_id, student_id, JSON.stringify(cmi_data || {}), completion_status || 'incomplete', score]); return r.rows[0]; };
+const getProgress = async (package_id, student_id) => { const r = await pool.query(`SELECT * FROM scorm_progress WHERE package_id=$1 AND student_id=$2`, [package_id, student_id]); return r.rows[0]; };
+module.exports = { createPackage, getByCourse, upsertProgress, getProgress };
