@@ -37,6 +37,10 @@ app.use('/api/payment', require('./routes/payment.routes'));
 app.use('/api/reportcard', require('./routes/reportcard.routes'));
 app.use('/api/import', require('./routes/import.routes'));
 app.use('/api/parent', require('./routes/parent.routes'));
+app.use('/api/quiz', require('./routes/quiz.routes'));
+app.use('/api/progress', require('./routes/progress.routes'));
+app.use('/api/certificates', require('./routes/certificate.routes'));
+app.use('/api/student-classes', require('./routes/studentclass.routes'));
 app.use('/api/subscription', require('./routes/subscription.routes'));
 
 app.get('/', (req, res) => {
