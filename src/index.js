@@ -47,6 +47,13 @@ app.use('/api/student-classes', require('./routes/studentclass.routes'));
 app.use('/api/learning-paths', require('./routes/learningpath.routes'));
 app.use('/api/gradebook', require('./routes/gradebook.routes'));
 app.use('/api/discussions', require('./routes/discussion.routes'));
+app.use('/api/departments', require('./routes/department.routes'));
+app.use('/api/programs', require('./routes/program.routes'));
+app.use('/api/batches', require('./routes/batch.routes'));
+app.use('/api/semesters', require('./routes/semester.routes'));
+app.use('/api/tickets', require('./routes/ticket.routes'));
+app.use('/api/coupons', require('./routes/coupon.routes'));
+app.use('/api/audit-logs', require('./routes/auditlog.routes'));
 app.use('/api/subscription', require('./routes/subscription.routes'));
 
 app.get('/', (req, res) => {

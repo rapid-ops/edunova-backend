@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const { protect } = require('../middleware/auth.middleware');
+const { create, listBySchool, listByUser, updateStatus, reply, replies } = require('../controllers/ticket.controller');
+router.post('/', protect, create);
+router.get('/school/:school_id', protect, listBySchool);
+router.get('/user/:user_id', protect, listByUser);
+router.put('/:id/status', protect, updateStatus);
+router.post('/reply', protect, reply);
+router.get('/:ticket_id/replies', protect, replies);
+module.exports = router;
