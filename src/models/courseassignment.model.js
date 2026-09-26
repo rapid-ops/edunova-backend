@@ -1,0 +1,7 @@
+const pool = require('../config/db');
+const assign = async ({ school_id, course_id, teacher_id, assigned_by }) => { const r = await pool.query(`INSERT INTO course_assignments (school_id,course_id,teacher_id,assigned_by) VALUES ($1,$2,$3,$4) ON CONFLICT (course_id,teacher_id) DO UPDATE SET assigned_by=$4,assigned_at=NOW() RETURNING *`, [school_id, course_id, teacher_id, assigned_by]); return r.rows[0]; };
+const unassign = async (course_id, teacher_id) => { await pool.query(`DELETE FROM course_assignments WHERE course_id=$1 AND teacher_id=$2`, [course_id, teacher_id]); };
+const getByTeacher = async (teacher_id) => { const r = await pool.query(`SELECT ca.*,c.title,c.description,c.is_published,cl.name as class_name FROM course_assignments ca JOIN courses c ON c.id=ca.course_id LEFT JOIN classes cl ON cl.id=c.class_id WHERE ca.teacher_id=$1 ORDER BY ca.assigned_at DESC`, [teacher_id]); return r.rows; };
+const getBySchool = async (school_id) => { const r = await pool.query(`SELECT ca.*,c.title as course_title,u.full_name as teacher_name,u.email as teacher_email FROM course_assignments ca JOIN courses c ON c.id=ca.course_id JOIN users u ON u.id=ca.teacher_id WHERE ca.school_id=$1 ORDER BY ca.assigned_at DESC`, [school_id]); return r.rows; };
+const getByCourse = async (course_id) => { const r = await pool.query(`SELECT ca.*,u.full_name,u.email,u.avatar_url FROM course_assignments ca JOIN users u ON u.id=ca.teacher_id WHERE ca.course_id=$1`, [course_id]); return r.rows; };
+module.exports = { assign, unassign, getByTeacher, getBySchool, getByCourse };

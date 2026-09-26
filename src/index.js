@@ -81,6 +81,16 @@ app.use('/api/peer-review', require('./routes/peerreview.routes'));
 app.use('/api/dropout', require('./routes/dropout.routes'));
 app.use('/api/skill-passport', require('./routes/skillpassport.routes'));
 app.use('/api/course-evolution', require('./routes/courseevolution.routes'));
+app.use('/api/course-assignments', require('./routes/courseassignment.routes'));
+app.use('/api/suggestions', require('./routes/suggestion.routes'));
+app.use('/api/class-sessions', require('./routes/classsession.routes'));
+app.use('/api/b2b-tickets', require('./routes/b2bticket.routes'));
+app.use('/api/announcements', require('./routes/announcement.routes'));
+app.use('/api/course-assignments', require('./routes/courseassignment.routes'));
+app.use('/api/suggestions', require('./routes/suggestion.routes'));
+app.use('/api/class-sessions', require('./routes/classsession.routes'));
+app.use('/api/b2b-tickets', require('./routes/b2bticket.routes'));
+app.use('/api/announcements', require('./routes/announcement.routes'));
 app.use('/api/subscription', require('./routes/subscription.routes'));
 
 app.get('/', (req, res) => {

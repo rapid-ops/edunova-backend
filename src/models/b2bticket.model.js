@@ -1,0 +1,7 @@
+const pool = require('../config/db');
+const create = async ({ school_id, submitted_by, subject, body, type, priority }) => { const r = await pool.query(`INSERT INTO b2b_tickets (school_id,submitted_by,subject,body,type,priority) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`, [school_id, submitted_by, subject, body, type || 'enquiry', priority || 'medium']); return r.rows[0]; };
+const getBySchool = async (school_id) => { const r = await pool.query(`SELECT bt.*,u.full_name,u.email FROM b2b_tickets bt JOIN users u ON u.id=bt.submitted_by WHERE bt.school_id=$1 ORDER BY bt.created_at DESC`, [school_id]); return r.rows; };
+const getAll = async () => { const r = await pool.query(`SELECT bt.*,u.full_name,u.email,s.name as school_name FROM b2b_tickets bt JOIN users u ON u.id=bt.submitted_by JOIN schools s ON s.id=bt.school_id ORDER BY bt.created_at DESC`); return r.rows; };
+const reply = async ({ id, super_admin_reply, replied_by }) => { const r = await pool.query(`UPDATE b2b_tickets SET super_admin_reply=$1,replied_by=$2,replied_at=NOW(),status='in_progress',updated_at=NOW() WHERE id=$3 RETURNING *`, [super_admin_reply, replied_by, id]); return r.rows[0]; };
+const updateStatus = async (id, status) => { const r = await pool.query(`UPDATE b2b_tickets SET status=$1,updated_at=NOW() WHERE id=$2 RETURNING *`, [status, id]); return r.rows[0]; };
+module.exports = { create, getBySchool, getAll, reply, updateStatus };

@@ -1,0 +1,10 @@
+const m = require('../models/classsession.model');
+const create = async (req, res) => { try { const s = await m.create(req.body); res.status(201).json({ session: s }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const join = async (req, res) => { try { const s = await m.getByCode(req.params.code); if (!s) return res.status(404).json({ error: 'Invalid or expired code' }); res.json({ session: s }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const byTeacher = async (req, res) => { try { const sessions = await m.getByTeacher(req.params.teacher_id); res.json({ sessions }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const close = async (req, res) => { try { await m.close(req.params.id); res.json({ message: 'Session closed' }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const ask = async (req, res) => { try { const q = await m.askQuestion(req.body); res.status(201).json({ question: q }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const questions = async (req, res) => { try { const qs = await m.getQuestions(req.params.session_id); res.json({ questions: qs }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const teacherAnswer = async (req, res) => { try { const q = await m.teacherAnswer(req.params.id, req.body.answer); res.json({ question: q }); } catch (err) { res.status(500).json({ error: err.message }); } };
+const adminAnswer = async (req, res) => { try { const q = await m.adminAnswer(req.params.id, req.body.answer); res.json({ question: q }); } catch (err) { res.status(500).json({ error: err.message }); } };
+module.exports = { create, join, byTeacher, close, ask, questions, teacherAnswer, adminAnswer };

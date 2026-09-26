@@ -1,0 +1,12 @@
+const router = require('express').Router();
+const { protect } = require('../middleware/auth.middleware');
+const { create, join, byTeacher, close, ask, questions, teacherAnswer, adminAnswer } = require('../controllers/classsession.controller');
+router.post('/', protect, create);
+router.get('/join/:code', join);
+router.get('/teacher/:teacher_id', protect, byTeacher);
+router.put('/:id/close', protect, close);
+router.post('/ask', protect, ask);
+router.get('/:session_id/questions', protect, questions);
+router.put('/questions/:id/teacher-answer', protect, teacherAnswer);
+router.put('/questions/:id/admin-answer', protect, adminAnswer);
+module.exports = router;
