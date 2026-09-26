@@ -6,7 +6,7 @@ const chat = async (messages, system, max_tokens = 1000) => {
   if (system) msgs.push({ role: 'system', content: system });
   msgs.push(...messages);
   const res = await client.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: 'meta-llama/llama-4-scout-17b-16e-instruct',
     max_tokens,
     messages: msgs,
   });
