@@ -1,0 +1,6 @@
+const pool = require('../config/db');
+const issue = async ({ student_id, school_id, course_id, credit_type, credits, expires_at }) => { const r = await pool.query(`INSERT INTO accreditation_credits (student_id,school_id,course_id,credit_type,credits,expires_at) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`, [student_id, school_id, course_id, credit_type || 'CEU', credits, expires_at || null]); return r.rows[0]; };
+const getByStudent = async (student_id) => { const r = await pool.query(`SELECT ac.*,c.title as course_title FROM accreditation_credits ac JOIN courses c ON c.id=ac.course_id WHERE ac.student_id=$1 ORDER BY ac.issued_at DESC`, [student_id]); return r.rows; };
+const getExpiring = async (school_id, days = 30) => { const r = await pool.query(`SELECT ac.*,u.full_name,u.email,c.title as course_title FROM accreditation_credits ac JOIN users u ON u.id=ac.student_id JOIN courses c ON c.id=ac.course_id WHERE ac.school_id=$1 AND ac.expires_at IS NOT NULL AND ac.expires_at <= NOW()+INTERVAL '${days} days' AND ac.renewal_sent=false`, [school_id]); return r.rows; };
+const markRenewalSent = async (id) => { await pool.query(`UPDATE accreditation_credits SET renewal_sent=true WHERE id=$1`, [id]); };
+module.exports = { issue, getByStudent, getExpiring, markRenewalSent };

@@ -59,6 +59,16 @@ app.use('/api/proctoring', require('./routes/proctoring.routes'));
 app.use('/api/custom-roles', require('./routes/customrole.routes'));
 app.use('/api/automations', require('./routes/automation.routes'));
 app.use('/api/scorm', require('./routes/scorm.routes'));
+app.use('/api/transcripts', require('./routes/transcript.routes'));
+app.use('/api/curriculum', require('./routes/curriculum.routes'));
+app.use('/api/accreditation', require('./routes/accreditation.routes'));
+app.use('/api/virtual-labs', require('./routes/virtuallab.routes'));
+app.use('/api/analytics', require('./routes/analytics.routes'));
+app.use('/api/transcripts', require('./routes/transcript.routes'));
+app.use('/api/curriculum', require('./routes/curriculum.routes'));
+app.use('/api/accreditation', require('./routes/accreditation.routes'));
+app.use('/api/virtual-labs', require('./routes/virtuallab.routes'));
+app.use('/api/analytics', require('./routes/analytics.routes'));
 app.use('/api/subscription', require('./routes/subscription.routes'));
 
 app.get('/', (req, res) => {
