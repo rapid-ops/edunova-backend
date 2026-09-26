@@ -70,3 +70,24 @@ router.delete('/:id', protect, authorize('super_admin','school_admin'), async (r
 });
 
 module.exports = router;
+
+router.get('/school/:school_id', protect, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT t.*, c.title as course_title, cl.name as class_name, u.full_name as teacher_name
+       FROM timetable t
+       JOIN courses c ON t.course_id = c.id
+       JOIN classes cl ON t.class_id = cl.id
+       LEFT JOIN users u ON t.teacher_id = u.id
+       WHERE t.school_id=$1
+       ORDER BY CASE t.day_of_week
+         WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2
+         WHEN 'Wednesday' THEN 3 WHEN 'Thursday' THEN 4
+         WHEN 'Friday' THEN 5 END, t.start_time`,
+      [req.params.school_id]
+    );
+    res.json({ timetable: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
