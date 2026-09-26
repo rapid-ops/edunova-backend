@@ -1,0 +1,5 @@
+const pool = require('../config/db');
+const getOrCreate = async ({ student_id, course_id }) => { const existing = await pool.query(`SELECT * FROM ai_tutor_sessions WHERE student_id=$1 AND course_id=$2 ORDER BY created_at DESC LIMIT 1`, [student_id, course_id]); if (existing.rows[0]) return existing.rows[0]; const r = await pool.query(`INSERT INTO ai_tutor_sessions (student_id,course_id,messages) VALUES ($1,$2,'[]') RETURNING *`, [student_id, course_id]); return r.rows[0]; };
+const appendMessage = async (session_id, message) => { const r = await pool.query(`UPDATE ai_tutor_sessions SET messages=messages||$1::jsonb,updated_at=NOW() WHERE id=$2 RETURNING *`, [JSON.stringify([message]), session_id]); return r.rows[0]; };
+const getCourseSummary = async (course_id) => { const r = await pool.query(`SELECT l.title,l.content FROM lessons l WHERE l.course_id=$1 AND l.content IS NOT NULL ORDER BY l.position LIMIT 10`, [course_id]); return r.rows.map(l => `${l.title}: ${l.content}`).join('\n\n'); };
+module.exports = { getOrCreate, appendMessage, getCourseSummary };

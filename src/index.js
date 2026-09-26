@@ -69,6 +69,12 @@ app.use('/api/curriculum', require('./routes/curriculum.routes'));
 app.use('/api/accreditation', require('./routes/accreditation.routes'));
 app.use('/api/virtual-labs', require('./routes/virtuallab.routes'));
 app.use('/api/analytics', require('./routes/analytics.routes'));
+app.use('/api/ai-courses', require('./routes/aicourse.routes'));
+app.use('/api/ai-tutor', require('./routes/aitutor.routes'));
+app.use('/api/skill-gap', require('./routes/skillgap.routes'));
+app.use('/api/adaptive', require('./routes/adaptive.routes'));
+app.use('/api/blockchain', require('./routes/blockchain.routes'));
+app.use('/api/career', require('./routes/career.routes'));
 app.use('/api/subscription', require('./routes/subscription.routes'));
 
 app.get('/', (req, res) => {
