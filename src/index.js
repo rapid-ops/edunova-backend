@@ -75,6 +75,12 @@ app.use('/api/skill-gap', require('./routes/skillgap.routes'));
 app.use('/api/adaptive', require('./routes/adaptive.routes'));
 app.use('/api/blockchain', require('./routes/blockchain.routes'));
 app.use('/api/career', require('./routes/career.routes'));
+app.use('/api/learning-twin', require('./routes/learningtwin.routes'));
+app.use('/api/proof-of-work', require('./routes/proofofwork.routes'));
+app.use('/api/peer-review', require('./routes/peerreview.routes'));
+app.use('/api/dropout', require('./routes/dropout.routes'));
+app.use('/api/skill-passport', require('./routes/skillpassport.routes'));
+app.use('/api/course-evolution', require('./routes/courseevolution.routes'));
 app.use('/api/subscription', require('./routes/subscription.routes'));
 
 app.get('/', (req, res) => {
