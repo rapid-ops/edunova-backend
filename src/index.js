@@ -44,6 +44,9 @@ app.use('/api/quiz', require('./routes/quiz.routes'));
 app.use('/api/progress', require('./routes/progress.routes'));
 app.use('/api/certificates', require('./routes/certificate.routes'));
 app.use('/api/student-classes', require('./routes/studentclass.routes'));
+app.use('/api/learning-paths', require('./routes/learningpath.routes'));
+app.use('/api/gradebook', require('./routes/gradebook.routes'));
+app.use('/api/discussions', require('./routes/discussion.routes'));
 app.use('/api/subscription', require('./routes/subscription.routes'));
 
 app.get('/', (req, res) => {

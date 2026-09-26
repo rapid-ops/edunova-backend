@@ -1,6 +1,6 @@
 const pool = require('../config/db');
-const create = async ({ lesson_id, course_id, school_id, user_id, parent_id, content }) => {
-  const r = await pool.query(`INSERT INTO discussions (lesson_id,course_id,school_id,user_id,parent_id,content) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`, [lesson_id, course_id, school_id, user_id, parent_id || null, content]);
+const create = async ({ lesson_id, school_id, user_id, parent_id, content }) => {
+  const r = await pool.query(`INSERT INTO discussions (lesson_id,school_id,user_id,parent_id,content) VALUES ($1,$2,$3,$4,$5) RETURNING *`, [lesson_id, school_id, user_id, parent_id || null, content]);
   return r.rows[0];
 };
 const getByLesson = async (lesson_id) => {
@@ -14,10 +14,10 @@ const upvote = async (discussion_id, user_id) => {
     return { upvoted: true };
   } catch { 
     await pool.query(`DELETE FROM discussion_upvotes WHERE discussion_id=$1 AND user_id=$2`, [discussion_id, user_id]);
-    await pool.query(`UPDATE discussions SET upvotes=GREATEST(0,upvotes-1) WHERE id=$1`, [discussion_id]);
+    await pool.query(`UPDATE discussions SET upvotes=GREATEST(upvotes-1,0) WHERE id=$1`, [discussion_id]);
     return { upvoted: false };
   }
 };
-const pin = async (id) => { await pool.query(`UPDATE discussions SET is_pinned=NOT is_pinned WHERE id=$1`, [id]); };
+const pin = async (id) => { const r = await pool.query(`UPDATE discussions SET is_pinned=NOT is_pinned WHERE id=$1 RETURNING *`, [id]); return r.rows[0]; };
 const remove = async (id) => { await pool.query(`DELETE FROM discussions WHERE id=$1`, [id]); };
 module.exports = { create, getByLesson, upvote, pin, remove };

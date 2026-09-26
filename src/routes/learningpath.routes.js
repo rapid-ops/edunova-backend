@@ -1,10 +1,10 @@
 const router = require('express').Router();
-const c = require('../controllers/learningpath.controller');
 const { protect } = require('../middleware/auth.middleware');
-router.post('/', protect, c.createPath);
-router.post('/course', protect, c.addCourse);
-router.get('/school/:school_id', protect, c.list);
-router.get('/:id', protect, c.get);
-router.get('/check/:student_id/:course_id', protect, c.checkPrereq);
-router.delete('/:id', protect, c.remove);
+const { createPath, addCourse, list, removeCourse, removePath, checkUnlock } = require('../controllers/learningpath.controller');
+router.post('/', protect, createPath);
+router.post('/course', protect, addCourse);
+router.get('/:school_id', protect, list);
+router.delete('/:path_id/course/:course_id', protect, removeCourse);
+router.delete('/:id', protect, removePath);
+router.get('/unlock/:student_id/:path_id/:course_id', protect, checkUnlock);
 module.exports = router;
