@@ -1,12 +1,20 @@
 const router = require('express').Router();
-const { createQuestion, listQuestions, removeQuestion, submit, getStudentAttempt, listAttempts } = require('../controllers/quiz.controller');
-const { protect } = require('../middleware/auth.middleware');
+const c = require('../controllers/quiz.controller');
+const { protect, authorize } = require('../middleware/auth.middleware');
 
-router.post('/questions', protect, createQuestion);
-router.get('/questions/:assessment_id', protect, listQuestions);
-router.delete('/questions/:id', protect, removeQuestion);
-router.post('/submit', protect, submit);
-router.get('/attempt/:assessment_id/:student_id', protect, getStudentAttempt);
-router.get('/attempts/:assessment_id', protect, listAttempts);
+const staff = authorize('super_admin', 'school_admin', 'teacher');
+const student = authorize('student');
+
+router.post('/', protect, staff, c.create);
+router.get('/me', protect, student, c.myQuizzes);
+router.get('/course/:course_id', protect, staff, c.listByCourse);
+router.post('/questions', protect, staff, c.addQuestion);
+router.delete('/questions/:id', protect, staff, c.removeQuestion);
+router.get('/attempts/:assessment_id', protect, staff, c.attempts);
+router.get('/manage/:assessment_id', protect, staff, c.manage);
+router.put('/settings/:assessment_id', protect, staff, c.updateSettings);
+router.get('/:assessment_id/info', protect, student, c.info);
+router.post('/:assessment_id/start', protect, student, c.start);
+router.post('/:assessment_id/submit', protect, student, c.submit);
 
 module.exports = router;
