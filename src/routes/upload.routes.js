@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { upload, cloudinary } = require('../middleware/upload.middleware');
-const { protect } = require('../middleware/auth.middleware');
+const { protect, authorize } = require('../middleware/auth.middleware');
 const pool = require('../config/db');
 
 // Upload profile picture
@@ -31,19 +31,34 @@ router.post('/logo/:school_id', protect, upload.single('file'), async (req, res)
   }
 });
 
-// Upload assignment submission
-router.post('/submission', protect, upload.single('file'), async (req, res) => {
+// Upload assignment submission (student id comes from the token, never the body)
+router.post('/submission', protect, authorize('student'), upload.single('file'), async (req, res) => {
   try {
-    const { assessment_id, student_id } = req.body;
+    const { assessment_id } = req.body;
+    if (!assessment_id || !/^\d+$/.test(String(assessment_id))) {
+      return res.status(400).json({ error: 'assessment_id required' });
+    }
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const ok = await pool.query(
+      `SELECT 1 FROM assessments a
+       JOIN enrollments e ON e.course_id=a.course_id
+       WHERE a.id=$1 AND e.student_id=$2`,
+      [assessment_id, req.user.id]
+    );
+    if (!ok.rowCount) return res.status(403).json({ error: 'Not enrolled in this course' });
+
     const url = req.file.path;
     const result = await pool.query(
       `INSERT INTO submissions (assessment_id, student_id, file_url)
        VALUES ($1, $2, $3)
        ON CONFLICT (assessment_id, student_id)
-       DO UPDATE SET file_url=$3, submitted_at=NOW()
+       DO UPDATE SET file_url=$3, submitted_at=NOW(), status='submitted'
+       WHERE submissions.status IS DISTINCT FROM 'graded'
        RETURNING *`,
-      [assessment_id, student_id, url]
+      [assessment_id, req.user.id, url]
     );
+    if (!result.rows[0]) return res.status(400).json({ error: 'Already graded, cannot resubmit' });
     res.json({ submission: result.rows[0] });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -1,10 +1,23 @@
 const pool = require('../config/db');
 
-const createAssignment = async ({ course_id, title, instructions, due_date, total_marks, allow_late, attachment_url }) => {
+const getCourseSchool = async (course_id) => {
+  const r = await pool.query(`SELECT id, school_id FROM courses WHERE id=$1`, [course_id]);
+  return r.rows[0] || null;
+};
+
+const isEnrolled = async (student_id, course_id) => {
   const r = await pool.query(
-    `INSERT INTO assessments (course_id, title, type, instructions, due_date, total_marks, allow_late, attachment_url)
-     VALUES ($1,$2,'assignment',$3,$4,$5,$6,$7) RETURNING *`,
-    [course_id, title, instructions || null, due_date || null, total_marks || 100, allow_late !== false, attachment_url || null]
+    `SELECT 1 FROM enrollments WHERE student_id=$1 AND course_id=$2`,
+    [student_id, course_id]
+  );
+  return r.rowCount > 0;
+};
+
+const createAssignment = async ({ course_id, title, instructions, due_date, total_marks, allow_late }) => {
+  const r = await pool.query(
+    `INSERT INTO assessments (course_id, title, type, instructions, due_date, total_marks, allow_late)
+     VALUES ($1,$2,'assignment',$3,$4,$5,$6) RETURNING *`,
+    [course_id, title, instructions || null, due_date || null, total_marks, allow_late !== false]
   );
   return r.rows[0];
 };
@@ -35,7 +48,12 @@ const getForStudent = async (student_id) => {
 };
 
 const getAssignment = async (id) => {
-  const r = await pool.query(`SELECT * FROM assessments WHERE id=$1 AND type='assignment'`, [id]);
+  const r = await pool.query(
+    `SELECT a.*, c.school_id AS course_school_id
+     FROM assessments a JOIN courses c ON c.id=a.course_id
+     WHERE a.id=$1 AND a.type='assignment'`,
+    [id]
+  );
   return r.rows[0];
 };
 
@@ -56,7 +74,7 @@ const submit = async ({ assessment_id, student_id, file_url, text_answer }) => {
            text_answer=$4,
            submitted_at=NOW(),
            status='submitted'
-       WHERE submissions.status <> 'graded'
+       WHERE submissions.status IS DISTINCT FROM 'graded'
      RETURNING *`,
     [assessment_id, student_id, file_url || null, text_answer || null]
   );
@@ -65,7 +83,8 @@ const submit = async ({ assessment_id, student_id, file_url, text_answer }) => {
 
 const listSubmissions = async (assessment_id) => {
   const r = await pool.query(
-    `SELECT s.*, to_jsonb(u) - 'password' - 'password_hash' AS student
+    `SELECT s.*,
+            json_build_object('id', u.id, 'full_name', u.full_name, 'email', u.email, 'avatar_url', u.avatar_url) AS student
      FROM submissions s JOIN users u ON u.id=s.student_id
      WHERE s.assessment_id=$1 ORDER BY s.submitted_at DESC`,
     [assessment_id]
@@ -75,8 +94,11 @@ const listSubmissions = async (assessment_id) => {
 
 const getSubmissionWithAssignment = async (id) => {
   const r = await pool.query(
-    `SELECT s.*, a.total_marks FROM submissions s
-     JOIN assessments a ON a.id=s.assessment_id WHERE s.id=$1`,
+    `SELECT s.*, a.total_marks, c.school_id AS course_school_id
+     FROM submissions s
+     JOIN assessments a ON a.id=s.assessment_id
+     JOIN courses c ON c.id=a.course_id
+     WHERE s.id=$1`,
     [id]
   );
   return r.rows[0];
@@ -100,6 +122,6 @@ const isParentOf = async (parent_id, student_id) => {
 };
 
 module.exports = {
-  createAssignment, getByCourse, getForStudent, getAssignment, getMySubmission,
-  submit, listSubmissions, getSubmissionWithAssignment, grade, isParentOf
+  getCourseSchool, isEnrolled, createAssignment, getByCourse, getForStudent, getAssignment,
+  getMySubmission, submit, listSubmissions, getSubmissionWithAssignment, grade, isParentOf
 };
