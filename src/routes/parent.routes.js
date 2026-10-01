@@ -37,7 +37,24 @@ router.get('/children/:parent_id', protect, async (req, res) => {
 // Get child full data (results, attendance, fees)
 router.get('/child/:student_id', protect, async (req, res) => {
   const { student_id } = req.params;
+  if (!/^\d+$/.test(student_id)) return res.status(404).json({ error: 'Not found' });
   try {
+    const u = req.user;
+    if (u.role === 'parent') {
+      const link = await pool.query(
+        `SELECT 1 FROM parent_student WHERE parent_id=$1 AND student_id=$2`,
+        [u.id, student_id]
+      );
+      if (!link.rowCount) return res.status(403).json({ error: 'Not your child' });
+    } else if (u.role === 'student') {
+      if (Number(u.id) !== Number(student_id)) return res.status(403).json({ error: 'Access denied' });
+    } else if (u.role !== 'super_admin') {
+      const s = await pool.query(`SELECT school_id FROM users WHERE id=$1`, [student_id]);
+      if (!s.rows[0] || u.school_id == null || Number(s.rows[0].school_id) !== Number(u.school_id)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
     const [resultsRes, attendanceRes, feesRes, enrollRes] = await Promise.all([
       pool.query(
         `SELECT r.*, a.title as assessment_title, a.total_marks, a.type

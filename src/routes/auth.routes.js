@@ -5,6 +5,8 @@ const { protect, authorize } = require('../middleware/auth.middleware');
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 
+const isSelf = (req) => Number(req.user.id) === Number(req.params.id);
+
 router.post('/register', register);
 router.post('/login', login);
 router.post('/forgot-password', forgotPassword);
@@ -26,28 +28,37 @@ router.get('/users/:school_id', protect, async (req, res) => {
 });
 
 router.put('/profile/:id', protect, async (req, res) => {
-  const { full_name, email } = req.body;
+  if (!isSelf(req)) return res.status(403).json({ error: 'Access denied' });
+  const full_name = String(req.body.full_name || '').trim();
+  const email = String(req.body.email || '').trim();
+  if (!full_name || !email) return res.status(400).json({ error: 'Name and email are required' });
   try {
     const result = await pool.query(
       `UPDATE users SET full_name=$1, email=$2 WHERE id=$3
        RETURNING id, full_name, email, role, school_id`,
-      [full_name, email, req.params.id]
+      [full_name, email, req.user.id]
     );
     res.json({ user: result.rows[0] });
   } catch (err) {
+    if (err.code === '23505') return res.status(400).json({ error: 'Email already in use' });
     res.status(500).json({ error: err.message });
   }
 });
 
 router.put('/password/:id', protect, async (req, res) => {
+  if (!isSelf(req)) return res.status(403).json({ error: 'Access denied' });
   const { current_password, new_password } = req.body;
+  if (!current_password || typeof new_password !== 'string' || new_password.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  }
   try {
-    const result = await pool.query(`SELECT * FROM users WHERE id=$1`, [req.params.id]);
+    const result = await pool.query(`SELECT password FROM users WHERE id=$1`, [req.user.id]);
     const user = result.rows[0];
-    const match = await bcrypt.compare(current_password, user.password);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const match = await bcrypt.compare(String(current_password), user.password);
     if (!match) return res.status(400).json({ error: 'Current password incorrect' });
     const hashed = await bcrypt.hash(new_password, 10);
-    await pool.query(`UPDATE users SET password=$1 WHERE id=$2`, [hashed, req.params.id]);
+    await pool.query(`UPDATE users SET password=$1 WHERE id=$2`, [hashed, req.user.id]);
     res.json({ message: 'Password updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
