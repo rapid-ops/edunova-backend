@@ -1,10 +1,15 @@
 const router = require('express').Router();
+const { canSeeStudent } = require('../utils/access');
 const PDFDocument = require('pdfkit');
 const pool = require('../config/db');
 const { protect, authorize } = require('../middleware/auth.middleware');
 
 router.get('/:student_id/:term', protect, authorize('super_admin','school_admin','teacher','student','parent'), async (req, res) => {
   const { student_id, term } = req.params;
+  try {
+    const access = await canSeeStudent(req.user, student_id, ['school_admin', 'teacher']);
+    if (access.error) return res.status(access.code).json({ error: access.error });
+  } catch (e) { return res.status(500).json({ error: e.message }); }
 
   try {
     const [studentRes, resultsRes, attendanceRes, feesRes] = await Promise.all([

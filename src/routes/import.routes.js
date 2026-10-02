@@ -9,7 +9,8 @@ const { protect, authorize } = require('../middleware/auth.middleware');
 const upload = multer({ storage: multer.memoryStorage() });
 
 router.post('/students', protect, authorize('super_admin','school_admin'), upload.single('file'), async (req, res) => {
-  const { school_id } = req.body;
+  const school_id = req.user.role === 'super_admin' ? req.body.school_id : req.user.school_id;
+  if (!school_id) return res.status(400).json({ error: 'school_id required' });
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
   const results = [];
