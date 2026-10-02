@@ -3,12 +3,6 @@ const { upload, cloudinary } = require('../middleware/upload.middleware');
 const { protect, authorize } = require('../middleware/auth.middleware');
 const pool = require('../config/db');
 
-const ownSchool = (req, res, next) => {
-  const u = req.user || {};
-  if (u.role === 'super_admin' || (u.school_id && String(u.school_id) === String(req.params.school_id))) return next();
-  res.status(403).json({ error: 'Not your school' });
-};
-
 // Upload profile picture
 router.post('/avatar', protect, upload.single('file'), async (req, res) => {
   try {
@@ -23,9 +17,17 @@ router.post('/avatar', protect, upload.single('file'), async (req, res) => {
   }
 });
 
-// Upload school logo
-router.post('/logo/:school_id', protect, authorize('super_admin', 'school_admin'), ownSchool, upload.single('file'), async (req, res) => {
+// Upload school logo (only that school's admin)
+const ownSchoolOnly = (req, res, next) => {
+  if (!/^\d+$/.test(req.params.school_id)) return res.status(404).json({ error: 'School not found' });
+  if (req.user.role !== 'super_admin' && Number(req.user.school_id) !== Number(req.params.school_id)) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  next();
+};
+router.post('/logo/:school_id', protect, authorize('school_admin', 'super_admin'), ownSchoolOnly, upload.single('file'), async (req, res) => {
   try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const url = req.file.path;
     await pool.query(
       `UPDATE schools SET logo_url=$1 WHERE id=$2`,
@@ -71,9 +73,10 @@ router.post('/submission', protect, authorize('student'), upload.single('file'),
   }
 });
 
-// Upload lesson material
-router.post('/material/:lesson_id', protect, upload.single('file'), async (req, res) => {
+// Upload lesson material (staff only)
+router.post('/material/:lesson_id', protect, authorize('super_admin', 'school_admin', 'teacher'), upload.single('file'), async (req, res) => {
   try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const url = req.file.path;
     await pool.query(
       `UPDATE lessons SET file_url=$1 WHERE id=$2`,
