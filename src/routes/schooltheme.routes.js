@@ -12,12 +12,14 @@ const L = {
   button_style: ['filled', 'outlined', 'ghost'],
 };
 const SECS = ['hero', 'stats', 'features', 'courses', 'testimonials', 'teachers', 'faq', 'contact', 'footer'];
-const str = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
+const str = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
 const num = v => Math.max(0, Math.min(10000000, parseInt(v, 10) || 0));
 const pick = (k, v, d) => (L[k].includes(v) ? v : d);
 const hex = (v, d) => (typeof v === 'string' && HEX.test(v) ? v : d);
-const https = v => (typeof v === 'string' && /^https:\/\/[^\s"'<>]{1,500}$/.test(v) ? v : '');
+const https = v => (typeof v === 'string' && /^https:\/\/[^\s"'<>()]{1,500}$/.test(v) ? v : '');
 const yt = v => (typeof v === 'string' && /^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com)\/embed\/[\w-]+$/.test(v) ? v : '');
+const date = v => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '');
+const arr = (v, n) => (Array.isArray(v) ? v.slice(0, n) : []);
 
 function clean(t = {}) {
   const s = t.sections || {}, c = s.content || {}, st = c.stats || {};
@@ -25,15 +27,23 @@ function clean(t = {}) {
   SECS.forEach(k => { sections[k] = s[k] !== false; });
   sections.content = {
     hero_cta: str(c.hero_cta, 40) || 'Apply now',
-    about: str(c.about, 3000),
-    admissions: str(c.admissions, 2000),
     hero_image: https(c.hero_image),
     video_url: yt(c.video_url),
+    about: str(c.about, 3000),
+    admissions: str(c.admissions, 2000),
     stats: { students: num(st.students), courses: num(st.courses), teachers: num(st.teachers), years: num(st.years) },
-    testimonials: (Array.isArray(c.testimonials) ? c.testimonials : []).slice(0, 12)
+    testimonials: arr(c.testimonials, 12)
       .map(x => ({ quote: str(x && x.quote, 400), name: str(x && x.name, 80), role: str(x && x.role, 80) })).filter(x => x.quote),
-    faq: (Array.isArray(c.faq) ? c.faq : []).slice(0, 20)
+    faq: arr(c.faq, 20)
       .map(x => ({ q: str(x && x.q, 200), a: str(x && x.a, 800) })).filter(x => x.q),
+    news: arr(c.news, 30)
+      .map(x => ({ title: str(x && x.title, 150), date: date(x && x.date), body: str(x && x.body, 3000), image: https(x && x.image) })).filter(x => x.title),
+    events: arr(c.events, 30)
+      .map(x => ({ title: str(x && x.title, 150), date: date(x && x.date), place: str(x && x.place, 120) })).filter(x => x.title),
+    staff: arr(c.staff, 40)
+      .map(x => ({ name: str(x && x.name, 80), role: str(x && x.role, 100), photo: https(x && x.photo), bio: str(x && x.bio, 500) })).filter(x => x.name),
+    gallery: arr(c.gallery, 40)
+      .map(x => ({ url: https(x && x.url), caption: str(x && x.caption, 120) })).filter(x => x.url),
   };
   return {
     template: pick('template', t.template, 'modern'),
