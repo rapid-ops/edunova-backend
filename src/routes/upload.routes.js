@@ -3,6 +3,12 @@ const { upload, cloudinary } = require('../middleware/upload.middleware');
 const { protect, authorize } = require('../middleware/auth.middleware');
 const pool = require('../config/db');
 
+const ownSchool = (req, res, next) => {
+  const u = req.user || {};
+  if (u.role === 'super_admin' || (u.school_id && String(u.school_id) === String(req.params.school_id))) return next();
+  res.status(403).json({ error: 'Not your school' });
+};
+
 // Upload profile picture
 router.post('/avatar', protect, upload.single('file'), async (req, res) => {
   try {
@@ -18,7 +24,7 @@ router.post('/avatar', protect, upload.single('file'), async (req, res) => {
 });
 
 // Upload school logo
-router.post('/logo/:school_id', protect, upload.single('file'), async (req, res) => {
+router.post('/logo/:school_id', protect, authorize('super_admin', 'school_admin'), ownSchool, upload.single('file'), async (req, res) => {
   try {
     const url = req.file.path;
     await pool.query(
