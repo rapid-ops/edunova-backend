@@ -6,12 +6,19 @@ const sameSchool = (user, schoolId) =>
   user.role === 'super_admin' ||
   (user.school_id != null && schoolId != null && Number(user.school_id) === Number(schoolId));
 
+const one = async (sql, id) => {
+  if (!validId(id)) return null;
+  const r = await pool.query(sql, [id]);
+  return r.rows[0] || null;
+};
+const getUser = (id) => one(`SELECT id, role, school_id FROM users WHERE id=$1`, id);
+const getClass = (id) => one(`SELECT id, school_id FROM classes WHERE id=$1`, id);
+const getCourse = (id) => one(`SELECT id, school_id FROM courses WHERE id=$1`, id);
+
 // Can this user see data about this student? Students: themselves. Parents: linked children.
 // Staff: only the roles listed in staffRoles, and only in their own school.
 const canSeeStudent = async (user, student_id, staffRoles) => {
-  if (!validId(student_id)) return { code: 404, error: 'Student not found' };
-  const r = await pool.query(`SELECT id, role, school_id FROM users WHERE id=$1`, [student_id]);
-  const st = r.rows[0];
+  const st = await getUser(student_id);
   if (!st || st.role !== 'student') return { code: 404, error: 'Student not found' };
   if (user.role === 'super_admin') return { student: st };
   if (user.role === 'student') {
@@ -27,4 +34,4 @@ const canSeeStudent = async (user, student_id, staffRoles) => {
   return { code: 403, error: 'Access denied' };
 };
 
-module.exports = { validId, sameSchool, canSeeStudent };
+module.exports = { validId, sameSchool, canSeeStudent, getUser, getClass, getCourse };
