@@ -11,7 +11,7 @@ const createCourse = async ({ school_id, class_id, teacher_id, title, descriptio
 
 const getCoursesBySchool = async (school_id) => {
   const result = await pool.query(
-    `SELECT c.*, u.full_name as teacher_name 
+    `SELECT c.*, u.full_name as teacher_name
      FROM courses c
      LEFT JOIN users u ON c.teacher_id = u.id
      WHERE c.school_id = $1 ORDER BY c.created_at DESC`,
@@ -34,7 +34,9 @@ const getCourseById = async (id) => {
 const updateCourse = async (id, fields) => {
   const { title, description, is_published } = fields;
   const result = await pool.query(
-    `UPDATE courses SET title=$1, description=$2, is_published=$3 WHERE id=$4 RETURNING *`,
+    `UPDATE courses
+     SET title=COALESCE($1, title), description=COALESCE($2, description), is_published=COALESCE($3, is_published)
+     WHERE id=$4 RETURNING *`,
     [title, description, is_published, id]
   );
   return result.rows[0];
