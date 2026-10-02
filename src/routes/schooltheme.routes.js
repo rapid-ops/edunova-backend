@@ -24,7 +24,9 @@ function clean(t = {}) {
   const sections = {};
   SECS.forEach(k => { sections[k] = s[k] !== false; });
   sections.content = {
-    hero_cta: str(c.hero_cta, 40) || 'Join this school',
+    hero_cta: str(c.hero_cta, 40) || 'Apply now',
+    about: str(c.about, 3000),
+    admissions: str(c.admissions, 2000),
     hero_image: https(c.hero_image),
     video_url: yt(c.video_url),
     stats: { students: num(st.students), courses: num(st.courses), teachers: num(st.teachers), years: num(st.years) },
@@ -52,13 +54,6 @@ const own = (req, res, next) => {
   if (u.role === 'super_admin' || (u.school_id && String(u.school_id) === String(req.params.id))) return next();
   res.status(403).json({ error: 'Not your school' });
 };
-
-router.get('/public', async (req, res) => {
-  try {
-    const r = await pool.query('SELECT id, name, subdomain, logo_url, tagline, primary_color FROM schools ORDER BY name ASC LIMIT 500');
-    res.json({ schools: r.rows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
 router.put('/:id/website', protect, authorize('super_admin', 'school_admin'), own, async (req, res) => {
   try {
