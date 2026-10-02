@@ -73,15 +73,28 @@ router.post('/submission', protect, authorize('student'), upload.single('file'),
   }
 });
 
-// Upload lesson material (staff only)
-router.post('/material/:lesson_id', protect, authorize('super_admin', 'school_admin', 'teacher'), upload.single('file'), async (req, res) => {
+// Upload lesson material (staff of the lesson's own school only)
+const lessonSchoolOnly = async (req, res, next) => {
+  try {
+    if (!/^\d+$/.test(req.params.lesson_id)) return res.status(404).json({ error: 'Lesson not found' });
+    const r = await pool.query(
+      "SELECT c.school_id FROM lessons l JOIN courses c ON c.id=l.course_id WHERE l.id=$1",
+      [req.params.lesson_id]
+    );
+    if (!r.rows[0]) return res.status(404).json({ error: 'Lesson not found' });
+    if (req.user.role !== 'super_admin' && Number(req.user.school_id) !== Number(r.rows[0].school_id)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    next();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+router.post('/material/:lesson_id', protect, authorize('super_admin', 'school_admin', 'teacher'), lessonSchoolOnly, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const url = req.file.path;
-    await pool.query(
-      `UPDATE lessons SET file_url=$1 WHERE id=$2`,
-      [url, req.params.lesson_id]
-    );
+    await pool.query("UPDATE lessons SET file_url=$1 WHERE id=$2", [url, req.params.lesson_id]);
     res.json({ url });
   } catch (err) {
     res.status(500).json({ error: err.message });
