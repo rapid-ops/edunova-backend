@@ -20,6 +20,8 @@ app.use(express.json());
 app.set('io', io);
 
 app.use('/api/auth', require('./routes/auth.routes'));
+app.use('/api/schools', require('./routes/schooltheme.routes'));
+app.use('/api/schools', require('./routes/schooltheme.routes'));
 app.use('/api/schools', require('./routes/school.routes'));
 app.use('/api/classes', require('./routes/class.routes'));
 app.use('/api/timetable', require('./routes/timetable.routes'));
