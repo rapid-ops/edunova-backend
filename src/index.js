@@ -36,6 +36,7 @@ app.use('/api/fees', require('./routes/fee.routes'));
 app.use('/api/messages', require('./routes/message.routes'));
 app.use('/api/notifications', require('./routes/notification.routes'));
 app.use('/api/results', require('./routes/result.routes'));
+app.use('/api/upload', require('./routes/schoolimage.routes'));
 app.use('/api/upload', require('./routes/upload.routes'));
 app.use('/api/payment', require('./routes/payment.routes'));
 app.use('/api/reportcard', require('./routes/reportcard.routes'));
