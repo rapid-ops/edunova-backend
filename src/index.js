@@ -30,6 +30,7 @@ app.use('/api/courses', require('./routes/course.routes'));
 app.use('/api/lessons', require('./routes/lesson.routes'));
 app.use('/api/assessments', require('./routes/assessment.routes'));
 app.use('/api/assignments', require('./routes/assignment.routes'));
+app.use('/api/reviews', require('./routes/review.routes'));
 app.use('/api/enrollments', require('./routes/enrollment.routes'));
 app.use('/api/attendance', require('./routes/attendance.routes'));
 app.use('/api/fees', require('./routes/fee.routes'));
