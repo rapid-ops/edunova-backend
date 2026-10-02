@@ -103,26 +103,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'Edunova API running' });
 });
 
-io.on('connection', (socket) => {
-  socket.on('join', (userId) => socket.join(`user_${userId}`));
-  socket.on('send_message', async (data) => {
-    const { sender_id, receiver_id, school_id, content } = data;
-    const pool = require('./config/db');
-    try {
-      const result = await pool.query(
-        `INSERT INTO messages (school_id, sender_id, receiver_id, content)
-         VALUES ($1, $2, $3, $4) RETURNING *`,
-        [school_id, sender_id, receiver_id, content]
-      );
-      const message = result.rows[0];
-      io.to(`user_${receiver_id}`).emit('new_message', message);
-      io.to(`user_${sender_id}`).emit('new_message', message);
-    } catch (err) {
-      console.error('Message error:', err.message);
-    }
-  });
-  socket.on('disconnect', () => {});
-});
+require('./socket')(io);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
