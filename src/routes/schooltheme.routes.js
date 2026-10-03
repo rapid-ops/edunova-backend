@@ -2,6 +2,8 @@ const router = require('express').Router();
 const pool = require('../config/db');
 const { protect, authorize } = require('../middleware/auth.middleware');
 
+pool.query('CREATE TABLE IF NOT EXISTS school_theme_drafts (school_id INTEGER PRIMARY KEY, config JSONB, updated_at TIMESTAMPTZ DEFAULT NOW())').catch(e => console.log('drafts table:', e.message));
+
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const L = {
   template: ['modern', 'bold', 'minimal', 'vibrant', 'professional', 'african'],
@@ -20,6 +22,18 @@ const https = v => (typeof v === 'string' && /^https:\/\/[^\s"'<>()]{1,500}$/.te
 const yt = v => (typeof v === 'string' && /^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com)\/embed\/[\w-]+$/.test(v) ? v : '');
 const date = v => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '');
 const arr = (v, n) => (Array.isArray(v) ? v.slice(0, n) : []);
+
+function cleanProgrammes(p) {
+  const out = {};
+  const src = p && typeof p === 'object' ? p : {};
+  Object.keys(src).slice(0, 200).forEach(k => {
+    if (!/^\d{1,10}$/.test(k)) return;
+    const v = src[k] || {};
+    const o = { duration: str(v.duration, 80), fees: str(v.fees, 80), requirements: str(v.requirements, 600) };
+    if (o.duration || o.fees || o.requirements) out[k] = o;
+  });
+  return out;
+}
 
 function clean(t = {}) {
   const s = t.sections || {}, c = s.content || {}, st = c.stats || {};
@@ -44,6 +58,7 @@ function clean(t = {}) {
       .map(x => ({ name: str(x && x.name, 80), role: str(x && x.role, 100), photo: https(x && x.photo), bio: str(x && x.bio, 500) })).filter(x => x.name),
     gallery: arr(c.gallery, 40)
       .map(x => ({ url: https(x && x.url), caption: str(x && x.caption, 120) })).filter(x => x.url),
+    programmes: cleanProgrammes(c.programmes),
   };
   return {
     template: pick('template', t.template, 'modern'),
@@ -81,7 +96,36 @@ router.put('/:id/theme', protect, authorize('super_admin', 'school_admin'), own,
       'UPDATE schools SET theme_config=$1::jsonb, tagline=COALESCE($2,tagline), logo_url=COALESCE($3,logo_url) WHERE id=$4 RETURNING id,name,tagline,logo_url,theme_config',
       [JSON.stringify(clean(req.body.theme_config)), tagline, logo, req.params.id]);
     if (!r.rows[0]) return res.status(404).json({ error: 'School not found' });
+    await pool.query('DELETE FROM school_theme_drafts WHERE school_id=$1', [req.params.id]).catch(() => {});
     res.json({ school: r.rows[0] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/:id/draft', protect, authorize('super_admin', 'school_admin'), own, async (req, res) => {
+  try {
+    const r = await pool.query('SELECT config, updated_at FROM school_theme_drafts WHERE school_id=$1', [req.params.id]);
+    res.json({ draft: r.rows[0] ? r.rows[0].config : null, updated_at: r.rows[0] ? r.rows[0].updated_at : null });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/:id/draft', protect, authorize('super_admin', 'school_admin'), own, async (req, res) => {
+  try {
+    const config = {
+      theme_config: clean(req.body.theme_config),
+      tagline: typeof req.body.tagline === 'string' ? req.body.tagline.slice(0, 160) : '',
+      logo_url: https(req.body.logo_url),
+    };
+    await pool.query(
+      'INSERT INTO school_theme_drafts (school_id, config, updated_at) VALUES ($1,$2::jsonb,NOW()) ON CONFLICT (school_id) DO UPDATE SET config=EXCLUDED.config, updated_at=NOW()',
+      [req.params.id, JSON.stringify(config)]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/:id/draft', protect, authorize('super_admin', 'school_admin'), own, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM school_theme_drafts WHERE school_id=$1', [req.params.id]);
+    res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
