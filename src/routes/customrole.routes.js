@@ -1,10 +1,11 @@
 const router = require('express').Router();
-const { protect } = require('../middleware/auth.middleware');
+const { protect, authorize } = require('../middleware/auth.middleware');
 const { create, list, update, remove, assign, userRoles } = require('../controllers/customrole.controller');
-router.post('/', protect, create);
-router.get('/:school_id', protect, list);
-router.put('/:id', protect, update);
-router.delete('/:id', protect, remove);
-router.post('/assign', protect, assign);
+const admin = authorize('super_admin', 'school_admin');
+router.post('/', protect, admin, create);
+router.post('/assign', protect, admin, assign);
 router.get('/user/:user_id', protect, userRoles);
+router.get('/:school_id', protect, admin, list);
+router.put('/:id', protect, admin, update);
+router.delete('/:id', protect, admin, remove);
 module.exports = router;

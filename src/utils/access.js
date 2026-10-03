@@ -15,6 +15,20 @@ const getUser = (id) => one(`SELECT id, role, school_id FROM users WHERE id=$1`,
 const getClass = (id) => one(`SELECT id, school_id FROM classes WHERE id=$1`, id);
 const getCourse = (id) => one(`SELECT id, school_id FROM courses WHERE id=$1`, id);
 
+// id and school of a row in one of the school-owned tables
+const TABLES = ['departments', 'programs', 'batches', 'semesters', 'custom_roles', 'automation_rules', 'competencies'];
+const schoolOfRow = (table, id) => (TABLES.includes(table) ? one(`SELECT id, school_id FROM ${table} WHERE id=$1`, id) : null);
+
+// The school a new record belongs to: the admin's own, or (for a super admin) the one named in the request
+const schoolForCreate = (req, res) => {
+  if (req.user.role === 'super_admin') {
+    if (!validId(req.body.school_id)) { res.status(400).json({ error: 'school_id required' }); return null; }
+    return Number(req.body.school_id);
+  }
+  if (req.user.school_id == null) { res.status(403).json({ error: 'Access denied' }); return null; }
+  return req.user.school_id;
+};
+
 // Can this user see data about this student? Students: themselves. Parents: linked children.
 // Staff: only the roles listed in staffRoles, and only in their own school.
 const canSeeStudent = async (user, student_id, staffRoles) => {
@@ -34,4 +48,4 @@ const canSeeStudent = async (user, student_id, staffRoles) => {
   return { code: 403, error: 'Access denied' };
 };
 
-module.exports = { validId, sameSchool, canSeeStudent, getUser, getClass, getCourse };
+module.exports = { validId, sameSchool, canSeeStudent, getUser, getClass, getCourse, schoolOfRow, schoolForCreate };
