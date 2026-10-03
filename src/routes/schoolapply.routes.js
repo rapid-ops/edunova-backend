@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const pool = require('../config/db');
 const { protect, authorize } = require('../middleware/auth.middleware');
+const { sendMail } = require('../utils/mail');
 
 pool.query(`CREATE TABLE IF NOT EXISTS school_applications (
   id SERIAL PRIMARY KEY, school_id INTEGER NOT NULL, name TEXT, email TEXT, phone TEXT,
@@ -33,11 +34,22 @@ router.post('/:subdomain', async (req, res) => {
     }
     const ip = String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
     if (limited(ip)) return res.status(429).json({ error: 'Too many applications. Try again later.' });
-    const s = await pool.query('SELECT id FROM schools WHERE lower(trim(subdomain)) = lower($1)', [str(req.params.subdomain, 60)]);
+    const s = await pool.query('SELECT id, name, email FROM schools WHERE lower(trim(subdomain)) = lower($1)', [str(req.params.subdomain, 60)]);
     if (!s.rows[0]) return res.status(404).json({ error: 'School not found' });
     await pool.query(
       'INSERT INTO school_applications (school_id,name,email,phone,programme,message,ip) VALUES ($1,$2,$3,$4,$5,$6,$7)',
       [s.rows[0].id, name, okMail ? email : '', phone, str(req.body.programme, 150), str(req.body.message, 2000), ip]);
+    const sc = s.rows[0];
+    if (sc.email) {
+      const site = process.env.SITE_URL || 'https://edunova-frontend-gkaj.vercel.app';
+      sendMail({
+        to: sc.email, replyTo: okMail ? email : '',
+        subject: 'New application: ' + name,
+        body: ['New application for ' + sc.name, '', 'Name: ' + name, 'Email: ' + (okMail ? email : '-'), 'Phone: ' + (phone || '-'),
+          'Programme: ' + (str(req.body.programme, 150) || '-'), 'Message: ' + (str(req.body.message, 2000) || '-'), '',
+          'All applications: ' + site + '/dashboard/applications'].join('\n'),
+      });
+    }
     res.status(201).json({ ok: true });
   } catch (e) { res.status(500).json({ error: 'Could not send. Try again.' }); }
 });
