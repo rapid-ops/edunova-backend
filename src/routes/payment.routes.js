@@ -1,101 +1,94 @@
-const router = require('express').Router();
-const axios = require('axios');
-const crypto = require('crypto');
+const express = require('express');
+const router = express.Router();
 const pool = require('../config/db');
-const { protect } = require('../middleware/auth.middleware');
-const { validId, canSeeStudent } = require('../utils/access');
+const { sendWhatsApp } = require('../services/whatsapp.service');
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
-const kobo = (amount) => Math.round(Number(amount) * 100);
-const getFee = async (id) => {
-  const r = await pool.query(`SELECT * FROM fees WHERE id=$1`, [id]);
-  return r.rows[0] || null;
-};
-const amountOk = (data, fee) =>
-  (!data.currency || data.currency === 'NGN') && Number(data.amount) >= kobo(fee.amount);
 
-// Initialize payment: the amount always comes from the fee record, never from the request
-router.post('/initialize', protect, async (req, res) => {
+// Initialize transaction
+router.post('/initialize', async (req, res) => {
+  const { fee_id, email, amount, student_id, school_id } = req.body;
   try {
-    if (!PAYSTACK_SECRET) return res.status(500).json({ error: 'Payments are not set up yet' });
-    const { fee_id } = req.body;
-    if (!validId(fee_id)) return res.status(400).json({ error: 'fee_id required' });
-    const fee = await getFee(fee_id);
-    if (!fee) return res.status(404).json({ error: 'Fee not found' });
-    const access = await canSeeStudent(req.user, fee.student_id, ['school_admin']);
-    if (access.error) return res.status(access.code).json({ error: access.error });
-    if (fee.status === 'paid') return res.status(400).json({ error: 'This fee is already paid' });
-    const u = await pool.query(`SELECT email FROM users WHERE id=$1`, [req.user.id]);
-    const email = u.rows[0] && u.rows[0].email;
-    if (!email) return res.status(400).json({ error: 'Your account has no email address' });
-
-    const response = await axios.post(
-      'https://api.paystack.co/transaction/initialize',
-      {
-        email,
-        amount: kobo(fee.amount),
-        metadata: { fee_id: fee.id },
-        callback_url: `${process.env.FRONTEND_URL}/payment/verify`,
+    const resp = await fetch('https://api.paystack.co/transaction/initialize', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${PAYSTACK_SECRET}`,
+        'Content-Type': 'application/json',
       },
-      { headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json' } }
-    );
-    res.json({
-      authorization_url: response.data.data.authorization_url,
-      reference: response.data.data.reference,
+      body: JSON.stringify({
+        email,
+        amount: Math.round(amount * 100), // kobo
+        metadata: { fee_id, student_id, school_id },
+        callback_url: `${process.env.FRONTEND_URL}/payment/verify`,
+      }),
     });
+    const data = await resp.json();
+    if (!data.status) return res.status(400).json({ error: data.message });
+    res.json({ authorization_url: data.data.authorization_url, reference: data.data.reference });
   } catch (err) {
-    res.status(500).json({ error: 'Could not start the payment' });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Verify payment: marks a fee paid only if the amount received covers it
-router.get('/verify/:reference', protect, async (req, res) => {
+// Verify transaction
+router.get('/verify/:reference', async (req, res) => {
   const { reference } = req.params;
   try {
-    if (!PAYSTACK_SECRET) return res.status(500).json({ error: 'Payments are not set up yet' });
-    if (!/^[A-Za-z0-9_=-]{4,100}$/.test(reference)) return res.status(400).json({ error: 'Invalid reference' });
-    const response = await axios.get(
-      `https://api.paystack.co/transaction/verify/${reference}`,
-      { headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` } }
-    );
-    const data = response.data.data;
-    if (data.status !== 'success') return res.json({ success: false, message: 'Payment not successful' });
-
-    const fee_id = data.metadata && data.metadata.fee_id;
-    const fee = validId(fee_id) ? await getFee(fee_id) : null;
-    if (!fee) return res.json({ success: false, message: 'This payment is not linked to a fee' });
-    const access = await canSeeStudent(req.user, fee.student_id, ['school_admin']);
-    if (access.error) return res.status(access.code).json({ error: access.error });
-    if (!amountOk(data, fee)) return res.json({ success: false, message: 'The amount paid does not cover this fee' });
-
-    await pool.query(`UPDATE fees SET status='paid', paid_at=NOW() WHERE id=$1 AND status <> 'paid'`, [fee.id]);
-    res.json({ success: true, data });
-  } catch (err) {
-    if (err.response && [400, 404].includes(err.response.status)) {
-      return res.status(400).json({ error: 'Payment not found' });
+    const resp = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` },
+    });
+    const data = await resp.json();
+    if (!data.status || data.data.status !== 'success') {
+      return res.json({ success: false, reason: data.data?.gateway_response || 'Payment failed' });
     }
-    res.status(500).json({ error: 'Could not verify the payment' });
+
+    const { fee_id, student_id, school_id } = data.data.metadata;
+    const amount = data.data.amount / 100;
+
+    // Mark fee as paid
+    await pool.query(
+      `UPDATE fees SET status='paid', paid_at=NOW() WHERE id=$1`,
+      [fee_id]
+    );
+
+    // Get student + parent info
+    const feeResult = await pool.query(
+      `SELECT f.description, u.full_name as student_name, u.phone as student_phone,
+              p.full_name as parent_name, p.phone as parent_phone, s.name as school_name
+       FROM fees f
+       JOIN users u ON u.id = $1
+       LEFT JOIN student_parents sp ON sp.student_id = $1
+       LEFT JOIN users p ON p.id = sp.parent_id
+       JOIN schools s ON s.id = $2
+       WHERE f.id = $3`,
+      [student_id, school_id, fee_id]
+    );
+    const info = feeResult.rows[0];
+
+    // WhatsApp receipt
+    if (info?.parent_phone) {
+      await sendWhatsApp(
+        info.parent_phone,
+        `✅ Payment Confirmed\nDear ${info.parent_name}, ₦${amount.toLocaleString()} fee payment for ${info.student_name} has been received. Reference: ${reference}. Thank you!`
+      );
+    }
+
+    res.json({ success: true, amount, reference, fee: info });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Webhook handler
-router.post('/webhook', async (req, res) => {
+// Payment history
+router.get('/history/:student_id', async (req, res) => {
   try {
-    if (!PAYSTACK_SECRET) return res.status(500).send('Not configured');
-    const hash = crypto.createHmac('sha512', PAYSTACK_SECRET).update(JSON.stringify(req.body)).digest('hex');
-    if (hash !== req.headers['x-paystack-signature']) return res.status(401).send('Unauthorized');
-
-    const event = req.body;
-    if (event.event === 'charge.success' && event.data) {
-      const fee_id = event.data.metadata && event.data.metadata.fee_id;
-      const fee = validId(fee_id) ? await getFee(fee_id) : null;
-      if (fee && amountOk(event.data, fee)) {
-        await pool.query(`UPDATE fees SET status='paid', paid_at=NOW() WHERE id=$1 AND status <> 'paid'`, [fee.id]);
-      }
-    }
-    res.sendStatus(200);
+    const result = await pool.query(
+      `SELECT * FROM fees WHERE student_id=$1 ORDER BY created_at DESC`,
+      [req.params.student_id]
+    );
+    res.json(result.rows);
   } catch (err) {
-    res.sendStatus(500);
+    res.status(500).json({ error: err.message });
   }
 });
 
