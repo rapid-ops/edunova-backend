@@ -13,6 +13,7 @@ router.delete('/questions/:id', protect, staff, c.removeQuestion);
 router.get('/attempts/:assessment_id', protect, staff, c.attempts);
 router.get('/manage/:assessment_id', protect, staff, c.manage);
 router.put('/settings/:assessment_id', protect, staff, c.updateSettings);
+router.get('/attempt-count/:assessment_id/:student_id', protect, c.attemptCount);
 router.get('/:assessment_id/info', protect, student, c.info);
 router.post('/:assessment_id/start', protect, student, c.start);
 router.post('/:assessment_id/submit', protect, student, c.submit);

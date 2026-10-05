@@ -307,4 +307,16 @@ const attempts = async (req, res) => {
   }
 };
 
-module.exports = { create, listByCourse, myQuizzes, info, start, submit, manage, updateSettings, addQuestion, removeQuestion, attempts };
+
+const attemptCount = async (req, res) => {
+  try {
+      return res.status(400).json({ error: 'Invalid params' });
+    }
+    const r = await m.pool
+      ? m.pool.query('SELECT COUNT(*) FROM quiz_attempts WHERE assessment_id=$1 AND student_id=$2', [req.params.assessment_id, req.params.student_id])
+      : { rows: [{ count: 0 }] };
+    res.json({ count: Number(r.rows[0].count) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+module.exports = { create, listByCourse, myQuizzes, info, start, submit, manage, updateSettings, addQuestion, removeQuestion, attempts, attemptCount };
