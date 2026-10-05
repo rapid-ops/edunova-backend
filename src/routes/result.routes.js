@@ -2,12 +2,14 @@ const router = require('express').Router();
 const pool = require('../config/db');
 const { protect, authorize } = require('../middleware/auth.middleware');
 const { validId, sameSchool, canSeeStudent } = require('../utils/access');
+const { sendWhatsApp } = require('../services/whatsapp.service');
+const { sendEmail } = require('../services/email.service');
 
 const staff = authorize('super_admin', 'school_admin', 'teacher');
 
 const assessmentWithSchool = async (id) => {
   const r = await pool.query(
-    `SELECT a.id, a.total_marks, c.school_id AS course_school_id
+    `SELECT a.id, a.title, a.total_marks, c.school_id AS course_school_id
      FROM assessments a JOIN courses c ON c.id=a.course_id WHERE a.id=$1`,
     [id]
   );
@@ -24,7 +26,7 @@ router.post('/', protect, staff, async (req, res) => {
     const a = await assessmentWithSchool(assessment_id);
     if (!a) return res.status(404).json({ error: 'Assessment not found' });
     if (!sameSchool(req.user, a.course_school_id)) return res.status(403).json({ error: 'Access denied' });
-    const st = await pool.query(`SELECT id, role, school_id FROM users WHERE id=$1`, [student_id]);
+    const st = await pool.query(`SELECT id, role, school_id, full_name, phone, email FROM users WHERE id=$1`, [student_id]);
     const student = st.rows[0];
     if (!student || student.role !== 'student' || Number(student.school_id) !== Number(a.course_school_id)) {
       return res.status(404).json({ error: 'Student not found in this school' });
@@ -41,6 +43,28 @@ router.post('/', protect, staff, async (req, res) => {
        RETURNING *`,
       [a.course_school_id, student.id, a.id, sc, feedback ? String(feedback).slice(0, 2000) : null, req.user.id]
     );
+
+    // WhatsApp + email result notification
+    try {
+      if (student.phone) {
+        sendWhatsApp(
+          student.phone,
+          `📊 Result Available\nHi ${student.full_name}, your result for ${a.title} is ready. Score: ${sc}/${a.total_marks}. Log in to Edunova to view details.`
+        );
+      }
+      if (student.email) {
+        sendEmail(student.email, 'result', {
+          student_name: student.full_name,
+          assessment_title: a.title,
+          score: sc,
+          total: a.total_marks,
+          school_name: 'Your School',
+        });
+      }
+    } catch (e) {
+      console.error('Result notification error:', e.message);
+    }
+
     res.status(201).json({ result: result.rows[0] });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -66,7 +90,7 @@ router.get('/student/:student_id', protect, async (req, res) => {
   }
 });
 
-// Get results by assessment (staff of the same school)
+// Get results by assessment
 router.get('/assessment/:assessment_id', protect, staff, async (req, res) => {
   try {
     if (!validId(req.params.assessment_id)) return res.status(404).json({ error: 'Assessment not found' });
