@@ -7,7 +7,6 @@ const { sendWhatsApp } = require('../services/whatsapp.service');
 
 const SELF_ROLES = ['student', 'teacher', 'parent'];
 
-// Reads a token if one is sent. A missing or stale token just means "anonymous".
 const optionalUser = (req) => {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) return null;
@@ -42,7 +41,6 @@ const register = async (req, res) => {
       if (!caller.school_id) return res.status(403).json({ error: 'Access denied' });
       school_id = caller.school_id;
     } else {
-      // Not logged in (or not an admin): only the first admin of a school with no admin
       if (role !== 'school_admin') {
         return res.status(403).json({ error: 'Access denied' });
       }
@@ -71,10 +69,14 @@ const register = async (req, res) => {
       if (user.phone) {
         const schoolRes = school_id ? await pool.query('SELECT name FROM schools WHERE id=$1', [school_id]) : null;
         const schoolName = schoolRes?.rows[0]?.name || 'Edunova';
-        sendWhatsApp(user.phone,
+        sendWhatsApp(
+          user.phone,
+          `👋 Welcome to ${schoolName} on Edunova!\nHi ${full_name}, your account has been created.\nEmail: ${email}\nPassword: ${password}\nLogin at: https://edunova-frontend-gkaj.vercel.app`
         );
       }
-    } catch(e) { console.error('WhatsApp welcome error:', e.message); }
+    } catch (e) {
+      console.error('WhatsApp welcome error:', e.message);
+    }
 
     const token = jwt.sign(
       { id: user.id, role: user.role, school_id: user.school_id },
@@ -87,7 +89,6 @@ const register = async (req, res) => {
   }
 };
 
-// No tokens are ever returned. Resets go through a school admin instead.
 const forgotPassword = async (req, res) => {
   res.json({ message: 'If this account exists, ask your school administrator to reset your password.' });
 };
