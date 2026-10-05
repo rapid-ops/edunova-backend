@@ -129,4 +129,14 @@ router.delete('/:id/draft', protect, authorize('super_admin', 'school_admin'), o
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+router.get('/subdomain/:subdomain/courses', async (req, res) => {
+  try {
+    const sub = String(req.params.subdomain || '').trim().slice(0, 60);
+    const sc = await pool.query('SELECT id FROM schools WHERE lower(trim(subdomain)) = lower($1)', [sub]);
+    if (!sc.rows[0]) return res.status(404).json({ error: 'School not found' });
+    const r = await pool.query('SELECT id, title, description FROM courses WHERE school_id=$1 AND is_published = true ORDER BY created_at DESC LIMIT 100', [sc.rows[0].id]);
+    res.json({ courses: r.rows });
+  } catch (e) { res.status(500).json({ error: 'Could not load courses' }); }
+});
+
 module.exports = router;
