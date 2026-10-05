@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const { createFee, getFeesByStudent, getFeesBySchool, updateFeeStatus } = require('../models/fee.model');
 const { validId, sameSchool, canSeeStudent } = require('../utils/access');
+const { sendWhatsApp } = require('../services/whatsapp.service');
 
 const create = async (req, res) => {
   try {
@@ -22,6 +23,31 @@ const create = async (req, res) => {
       description: description ? String(description).slice(0, 255) : null,
       due_date: due_date || null,
     });
+
+    // WhatsApp fee notice to parent
+    try {
+      const infoRes = await pool.query(
+        `SELECT u.full_name as student_name, p.full_name as parent_name, p.phone as parent_phone,
+                sc.name as school_name
+         FROM users u
+         LEFT JOIN student_parents sp ON sp.student_id = u.id
+         LEFT JOIN users p ON p.id = sp.parent_id
+         JOIN schools sc ON sc.id = $1
+         WHERE u.id = $2`,
+        [st.school_id, st.id]
+      );
+      const info = infoRes.rows[0];
+      if (info?.parent_phone) {
+        const dueDateStr = due_date ? new Date(due_date).toLocaleDateString('en-NG') : 'Not set';
+        sendWhatsApp(
+          info.parent_phone,
+          `💰 Fee Notice\nDear ${info.parent_name}, a new fee of ₦${amt.toLocaleString()} has been assigned to ${info.student_name}: ${description || 'School fee'}. Due date: ${dueDateStr}. Pay via the Edunova app.`
+        );
+      }
+    } catch (e) {
+      console.error('WhatsApp fee notice error:', e.message);
+    }
+
     res.status(201).json({ fee });
   } catch (err) {
     res.status(500).json({ error: err.message });

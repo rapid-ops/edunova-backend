@@ -1,5 +1,7 @@
 const m = require('../models/quiz.model');
 const { issueCertificate, getCertificate } = require('../models/certificate.model');
+const { sendWhatsApp } = require('../services/whatsapp.service');
+const pool = require('../config/db');
 
 const validId = (v) => /^\d+$/.test(String(v));
 const sameSchool = (user, schoolId) =>
@@ -185,6 +187,17 @@ const submit = async (req, res) => {
         console.error('Certificate issue failed:', e.message);
       }
     }
+    // WhatsApp result notification
+    try {
+      const stRes = await pool.query('SELECT full_name, phone FROM users WHERE id=$1', [req.user.id]);
+      const st = stRes.rows[0];
+      if (st?.phone) {
+        sendWhatsApp(st.phone,
+          `📊 Result Available
+Hi ${st.full_name}, your result for ${a.title} is ready. Score: ${r.score}/${a.total_marks}. Log in to Edunova to view details.`
+        );
+      }
+    } catch(e) { console.error('WhatsApp result error:', e.message); }
     res.json({ ...r, certificate_issued });
   } catch (err) {
     res.status(500).json({ error: err.message });

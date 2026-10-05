@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const pool = require('../config/db');
 const { createUser, findUserByEmail } = require('../models/user.model');
+const { sendWhatsApp } = require('../services/whatsapp.service');
 
 const SELF_ROLES = ['student', 'teacher', 'parent'];
 
@@ -64,6 +65,17 @@ const register = async (req, res) => {
     if (existing) return res.status(400).json({ error: 'Email already exists' });
 
     const user = await createUser({ school_id, full_name, email, password, role });
+
+    // Welcome WhatsApp
+    try {
+      if (user.phone) {
+        const schoolRes = school_id ? await pool.query('SELECT name FROM schools WHERE id=$1', [school_id]) : null;
+        const schoolName = schoolRes?.rows[0]?.name || 'Edunova';
+        sendWhatsApp(user.phone,
+        );
+      }
+    } catch(e) { console.error('WhatsApp welcome error:', e.message); }
+
     const token = jwt.sign(
       { id: user.id, role: user.role, school_id: user.school_id },
       process.env.JWT_SECRET,
