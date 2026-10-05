@@ -308,15 +308,22 @@ const attempts = async (req, res) => {
 };
 
 
+
+
 const attemptCount = async (req, res) => {
   try {
+    if (!req.params.assessment_id || !req.params.student_id) {
       return res.status(400).json({ error: 'Invalid params' });
     }
-    const r = await m.pool
-      ? m.pool.query('SELECT COUNT(*) FROM quiz_attempts WHERE assessment_id=$1 AND student_id=$2', [req.params.assessment_id, req.params.student_id])
-      : { rows: [{ count: 0 }] };
+    const pool = require('../config/db');
+    const r = await pool.query(
+      'SELECT COUNT(*) FROM quiz_attempts WHERE assessment_id=$1 AND student_id=$2',
+      [req.params.assessment_id, req.params.student_id]
+    );
     res.json({ count: Number(r.rows[0].count) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 module.exports = { create, listByCourse, myQuizzes, info, start, submit, manage, updateSettings, addQuestion, removeQuestion, attempts, attemptCount };
