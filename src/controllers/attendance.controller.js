@@ -29,7 +29,7 @@ const mark = async (req, res) => {
         const schoolName = schoolRes.rows[0]?.name || 'School';
         const parentRes = await pool.query(
           `SELECT u.phone, u.full_name FROM users u
-           JOIN student_parents sp ON sp.parent_id = u.id
+           JOIN parent_student sp ON sp.parent_id = u.id
            WHERE sp.student_id = $1 LIMIT 1`,
           [st.id]
         );

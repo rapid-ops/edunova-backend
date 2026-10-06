@@ -70,7 +70,7 @@ router.post('/students', upload.single('file'), async (req, res) => {
           parentId = pu.rows[0].id;
         }
         await pool.query(
-          `INSERT INTO student_parents (student_id, parent_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
+          `INSERT INTO parent_student (student_id, parent_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
           [studentId, parentId]
         );
         if (row.parent_phone) {

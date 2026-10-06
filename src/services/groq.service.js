@@ -6,7 +6,7 @@ const chat = async (messages, system, max_tokens = 1000) => {
   if (system) msgs.push({ role: 'system', content: system });
   msgs.push(...messages);
   const res = await client.chat.completions.create({
-    model: 'openai/gpt-oss-20b',
+    model: 'llama3-70b-8192',
     max_tokens,
     messages: msgs,
   });

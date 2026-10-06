@@ -1,0 +1,2181 @@
+=== src/config/db.js ===
+const { Pool } = require('pg');
+require('dotenv').config();
+
+const pool = new Pool(
+  process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false },
+      }
+    : {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT,
+        database: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+      }
+);
+
+pool.connect((err) => {
+  if (err) {
+    console.error('Database connection failed:', err.message);
+  } else {
+    console.log('Database connected successfully');
+  }
+});
+
+module.exports = pool;
+=== src/config/migrate.js ===
+const pool = require('./db');
+
+const migrate = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS schools (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        phone VARCHAR(20),
+        address TEXT,
+        logo_url TEXT,
+        subdomain VARCHAR(100) UNIQUE NOT NULL,
+        subscription_plan VARCHAR(50) DEFAULT 'basic',
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        full_name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(50) NOT NULL CHECK (role IN ('super_admin','school_admin','teacher','student','parent')),
+        is_active BOOLEAN DEFAULT true,
+        avatar_url TEXT,
+        phone VARCHAR(20),
+        reset_token TEXT,
+        reset_token_expires TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS classes (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        grade_level VARCHAR(50),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS courses (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        class_id INTEGER REFERENCES classes(id) ON DELETE SET NULL,
+        teacher_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        is_published BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS lessons (
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        content TEXT,
+        video_url TEXT,
+        file_url TEXT,
+        position INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS assessments (
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        type VARCHAR(50) CHECK (type IN ('quiz','assignment','exam')),
+        due_date TIMESTAMP,
+        total_marks INTEGER DEFAULT 100,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS enrollments (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        enrolled_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(student_id, course_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS fees (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        amount NUMERIC(10,2) NOT NULL,
+        description VARCHAR(255),
+        status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending','paid','overdue')),
+        due_date TIMESTAMP,
+        paid_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS attendance (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        class_id INTEGER REFERENCES classes(id) ON DELETE CASCADE,
+        date DATE NOT NULL,
+        status VARCHAR(20) CHECK (status IN ('present','absent','late')),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        receiver_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        is_read BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        body TEXT,
+        type VARCHAR(50) DEFAULT 'general',
+        is_read BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS results (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        assessment_id INTEGER REFERENCES assessments(id) ON DELETE CASCADE,
+        score NUMERIC(5,2) NOT NULL,
+        feedback TEXT,
+        graded_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(student_id, assessment_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS timetable (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        class_id INTEGER REFERENCES classes(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        teacher_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        day_of_week VARCHAR(20) NOT NULL CHECK (day_of_week IN ('Monday','Tuesday','Wednesday','Thursday','Friday')),
+        start_time TIME NOT NULL,
+        end_time TIME NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS submissions (
+        id SERIAL PRIMARY KEY,
+        assessment_id INTEGER REFERENCES assessments(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        file_url TEXT NOT NULL,
+        submitted_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(assessment_id, student_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS parent_student (
+        id SERIAL PRIMARY KEY,
+        parent_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(parent_id, student_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        plan VARCHAR(50) NOT NULL DEFAULT 'basic',
+        status VARCHAR(50) DEFAULT 'trial' CHECK (status IN ('trial','active','expired','cancelled')),
+        paystack_customer_code VARCHAR(100),
+        paystack_subscription_code VARCHAR(100),
+        current_period_start TIMESTAMP,
+        current_period_end TIMESTAMP,
+        trial_ends_at TIMESTAMP DEFAULT (NOW() + INTERVAL '30 days'),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    console.log('Migration complete');
+  } catch (err) {
+    console.error('Migration error:', err.message);
+  }
+};
+
+migrate();
+=== src/config/migrate2.js ===
+const pool = require('./db');
+
+const migrate2 = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_classes (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        class_id INTEGER REFERENCES classes(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        enrolled_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(student_id, class_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS quiz_questions (
+        id SERIAL PRIMARY KEY,
+        assessment_id INTEGER REFERENCES assessments(id) ON DELETE CASCADE,
+        question TEXT NOT NULL,
+        type VARCHAR(20) DEFAULT 'mcq' CHECK (type IN ('mcq','true_false','short_answer')),
+        options JSONB,
+        correct_answer TEXT,
+        marks INTEGER DEFAULT 1,
+        position INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS quiz_attempts (
+        id SERIAL PRIMARY KEY,
+        assessment_id INTEGER REFERENCES assessments(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        answers JSONB,
+        score NUMERIC(5,2),
+        submitted_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(assessment_id, student_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS lesson_progress (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        lesson_id INTEGER REFERENCES lessons(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        watch_percent INTEGER DEFAULT 0,
+        completed BOOLEAN DEFAULT false,
+        last_watched_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(student_id, lesson_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS certificates (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        issued_at TIMESTAMP DEFAULT NOW(),
+        certificate_url TEXT,
+        UNIQUE(student_id, course_id)
+      );
+    `);
+    console.log('Migration 2 complete');
+  } catch (err) {
+    console.error('Migration 2 error:', err.message);
+  } finally {
+    process.exit();
+  }
+};
+
+migrate2();
+=== src/config/migrate3.js ===
+const pool = require('./db');
+const migrate3 = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS learning_paths (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS learning_path_courses (
+        id SERIAL PRIMARY KEY,
+        path_id INTEGER REFERENCES learning_paths(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        position INTEGER DEFAULT 0,
+        UNIQUE(path_id, course_id)
+      );
+      CREATE TABLE IF NOT EXISTS gradebook (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        assessment_id INTEGER REFERENCES assessments(id) ON DELETE CASCADE,
+        score NUMERIC(5,2),
+        weight NUMERIC(5,2) DEFAULT 1,
+        letter_grade VARCHAR(5),
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(student_id, assessment_id)
+      );
+      CREATE TABLE IF NOT EXISTS discussions (
+        id SERIAL PRIMARY KEY,
+        lesson_id INTEGER REFERENCES lessons(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        parent_id INTEGER REFERENCES discussions(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        upvotes INTEGER DEFAULT 0,
+        is_pinned BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS discussion_upvotes (
+        id SERIAL PRIMARY KEY,
+        discussion_id INTEGER REFERENCES discussions(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE(discussion_id, user_id)
+      );
+      ALTER TABLE lessons ADD COLUMN IF NOT EXISTS drip_days INTEGER DEFAULT 0;
+      ALTER TABLE lessons ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT false;
+      ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS enrolled_at TIMESTAMP DEFAULT NOW();
+    `);
+    console.log('Migration 3 complete');
+  } catch (err) { console.error('Migration 3 error:', err.message); }
+  finally { process.exit(); }
+};
+migrate3();
+=== src/config/migrate4.js ===
+const pool = require('./db');
+const migrate4 = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS departments (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS programs (
+        id SERIAL PRIMARY KEY,
+        department_id INTEGER REFERENCES departments(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS batches (
+        id SERIAL PRIMARY KEY,
+        program_id INTEGER REFERENCES programs(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        start_date DATE,
+        end_date DATE,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS semesters (
+        id SERIAL PRIMARY KEY,
+        batch_id INTEGER REFERENCES batches(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        start_date DATE,
+        end_date DATE,
+        is_active BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS tickets (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        subject VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        status VARCHAR(50) DEFAULT 'open' CHECK (status IN ('open','in_progress','resolved','closed')),
+        priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN ('low','medium','high','urgent')),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS ticket_replies (
+        id SERIAL PRIMARY KEY,
+        ticket_id INTEGER REFERENCES tickets(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        body TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS coupons (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        code VARCHAR(50) UNIQUE NOT NULL,
+        discount_percent NUMERIC(5,2) NOT NULL,
+        max_uses INTEGER DEFAULT 1,
+        used_count INTEGER DEFAULT 0,
+        expires_at TIMESTAMP,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        action VARCHAR(255) NOT NULL,
+        entity VARCHAR(100),
+        entity_id INTEGER,
+        meta JSONB,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      ALTER TABLE schools ADD COLUMN IF NOT EXISTS custom_domain VARCHAR(255);
+      ALTER TABLE schools ADD COLUMN IF NOT EXISTS primary_color VARCHAR(20) DEFAULT '#2563eb';
+      ALTER TABLE schools ADD COLUMN IF NOT EXISTS tagline VARCHAR(255);
+      ALTER TABLE schools ADD COLUMN IF NOT EXISTS timezone VARCHAR(100) DEFAULT 'Africa/Lagos';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL;
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS semester_id INTEGER REFERENCES semesters(id) ON DELETE SET NULL;
+    `);
+    console.log('Migration 4 complete');
+  } catch (err) { console.error('Migration 4 error:', err.message); }
+  finally { process.exit(); }
+};
+migrate4();
+=== src/config/migrate5.js ===
+const pool = require('./db');
+const migrate5 = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS competencies (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS course_competencies (
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        competency_id INTEGER REFERENCES competencies(id) ON DELETE CASCADE,
+        UNIQUE(course_id, competency_id)
+      );
+      CREATE TABLE IF NOT EXISTS student_competencies (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        competency_id INTEGER REFERENCES competencies(id) ON DELETE CASCADE,
+        level INTEGER DEFAULT 0,
+        achieved_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(student_id, competency_id)
+      );
+      CREATE TABLE IF NOT EXISTS proctoring_sessions (
+        id SERIAL PRIMARY KEY,
+        assessment_id INTEGER REFERENCES assessments(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        started_at TIMESTAMP DEFAULT NOW(),
+        ended_at TIMESTAMP,
+        tab_switches INTEGER DEFAULT 0,
+        flags JSONB,
+        recording_url TEXT,
+        status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active','completed','flagged'))
+      );
+      CREATE TABLE IF NOT EXISTS custom_roles (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        permissions JSONB NOT NULL DEFAULT '[]',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS user_custom_roles (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        role_id INTEGER REFERENCES custom_roles(id) ON DELETE CASCADE,
+        UNIQUE(user_id, role_id)
+      );
+      CREATE TABLE IF NOT EXISTS automation_rules (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        trigger_event VARCHAR(100) NOT NULL,
+        condition_field VARCHAR(100),
+        condition_operator VARCHAR(20),
+        condition_value TEXT,
+        action_type VARCHAR(100) NOT NULL,
+        action_payload JSONB,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS automation_logs (
+        id SERIAL PRIMARY KEY,
+        rule_id INTEGER REFERENCES automation_rules(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        triggered_at TIMESTAMP DEFAULT NOW(),
+        result TEXT
+      );
+      CREATE TABLE IF NOT EXISTS scorm_packages (
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        title VARCHAR(255),
+        package_url TEXT NOT NULL,
+        version VARCHAR(20) DEFAULT 'scorm_12',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS scorm_progress (
+        id SERIAL PRIMARY KEY,
+        package_id INTEGER REFERENCES scorm_packages(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        cmi_data JSONB,
+        completion_status VARCHAR(50) DEFAULT 'incomplete',
+        score NUMERIC(5,2),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(package_id, student_id)
+      );
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS is_proctored BOOLEAN DEFAULT false;
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS time_limit_minutes INTEGER;
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS randomize_questions BOOLEAN DEFAULT false;
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS negative_marking NUMERIC(3,2) DEFAULT 0;
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS max_attempts INTEGER DEFAULT 1;
+    `);
+    console.log('Migration 5 complete');
+  } catch (err) { console.error('Migration 5 error:', err.message); }
+  finally { process.exit(); }
+};
+migrate5();
+=== src/config/migrate6.js ===
+const pool = require('./db');
+const migrate6 = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS transcripts (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        semester_id INTEGER REFERENCES semesters(id) ON DELETE SET NULL,
+        total_credits NUMERIC(5,2) DEFAULT 0,
+        gpa NUMERIC(3,2) DEFAULT 0,
+        cgpa NUMERIC(3,2) DEFAULT 0,
+        generated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS transcript_entries (
+        id SERIAL PRIMARY KEY,
+        transcript_id INTEGER REFERENCES transcripts(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        course_title VARCHAR(255),
+        credits NUMERIC(3,1) DEFAULT 3,
+        score NUMERIC(5,2),
+        letter_grade VARCHAR(5),
+        grade_points NUMERIC(3,2)
+      );
+      CREATE TABLE IF NOT EXISTS curriculum_standards (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        framework VARCHAR(100),
+        description TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS course_standards (
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        standard_id INTEGER REFERENCES curriculum_standards(id) ON DELETE CASCADE,
+        UNIQUE(course_id, standard_id)
+      );
+      CREATE TABLE IF NOT EXISTS accreditation_credits (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        credit_type VARCHAR(100) DEFAULT 'CEU',
+        credits NUMERIC(5,2) NOT NULL,
+        issued_at TIMESTAMP DEFAULT NOW(),
+        expires_at TIMESTAMP,
+        renewal_sent BOOLEAN DEFAULT false
+      );
+      CREATE TABLE IF NOT EXISTS virtual_labs (
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        lab_url TEXT,
+        lab_type VARCHAR(50) DEFAULT 'simulation',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS lab_submissions (
+        id SERIAL PRIMARY KEY,
+        lab_id INTEGER REFERENCES virtual_labs(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        data JSONB,
+        score NUMERIC(5,2),
+        submitted_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(lab_id, student_id)
+      );
+      CREATE TABLE IF NOT EXISTS analytics_events (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        event_type VARCHAR(100) NOT NULL,
+        entity VARCHAR(100),
+        entity_id INTEGER,
+        meta JSONB,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS credits NUMERIC(3,1) DEFAULT 3;
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS curriculum_standard_id INTEGER REFERENCES curriculum_standards(id) ON DELETE SET NULL;
+    `);
+    console.log('Migration 6 complete');
+  } catch (err) { console.error('Migration 6 error:', err.message); }
+  finally { process.exit(); }
+};
+migrate6();
+=== src/config/migrate7.js ===
+const pool = require('./db');
+const migrate7 = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ai_course_generations (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        prompt TEXT,
+        source_type VARCHAR(50) DEFAULT 'prompt',
+        source_url TEXT,
+        generated_outline JSONB,
+        status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending','processing','done','failed')),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS ai_quiz_generations (
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        lesson_id INTEGER REFERENCES lessons(id) ON DELETE SET NULL,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        topic TEXT,
+        questions JSONB,
+        status VARCHAR(50) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS ai_tutor_sessions (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        messages JSONB DEFAULT '[]',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS skill_gap_analyses (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        cv_text TEXT,
+        gaps JSONB,
+        recommendations JSONB,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS adaptive_learning_profiles (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        difficulty_level INTEGER DEFAULT 5,
+        avg_score NUMERIC(5,2) DEFAULT 0,
+        attempts INTEGER DEFAULT 0,
+        last_updated TIMESTAMP DEFAULT NOW(),
+        UNIQUE(student_id, course_id)
+      );
+      CREATE TABLE IF NOT EXISTS blockchain_certificates (
+        id SERIAL PRIMARY KEY,
+        certificate_id INTEGER REFERENCES certificates(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        tx_hash VARCHAR(255),
+        chain VARCHAR(50) DEFAULT 'polygon',
+        token_id VARCHAR(100),
+        metadata_url TEXT,
+        qr_code_url TEXT,
+        issued_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS career_matches (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        job_title VARCHAR(255),
+        company VARCHAR(255),
+        match_score NUMERIC(5,2),
+        matched_competencies JSONB,
+        job_url TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    console.log('Migration 7 complete');
+  } catch (err) { console.error('Migration 7 error:', err.message); }
+  finally { process.exit(); }
+};
+migrate7();
+=== src/config/migrate8.js ===
+const pool = require('./db');
+const migrate8 = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS learning_twins (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        learning_speed VARCHAR(50) DEFAULT 'medium',
+        best_study_time VARCHAR(50) DEFAULT 'morning',
+        common_mistakes JSONB DEFAULT '[]',
+        revision_schedule JSONB DEFAULT '[]',
+        last_analyzed TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS emotion_events (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        lesson_id INTEGER REFERENCES lessons(id) ON DELETE CASCADE,
+        emotion VARCHAR(50),
+        confidence NUMERIC(3,2),
+        action_taken VARCHAR(100),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS proof_of_work_tasks (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        company VARCHAR(255),
+        task_url TEXT,
+        difficulty VARCHAR(50) DEFAULT 'beginner',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS proof_of_work_submissions (
+        id SERIAL PRIMARY KEY,
+        task_id INTEGER REFERENCES proof_of_work_tasks(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        submission_url TEXT NOT NULL,
+        status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+        reviewer_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        feedback TEXT,
+        submitted_at TIMESTAMP DEFAULT NOW(),
+        reviewed_at TIMESTAMP,
+        UNIQUE(task_id, student_id)
+      );
+      CREATE TABLE IF NOT EXISTS peer_review_credits (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        credits NUMERIC(8,2) DEFAULT 0,
+        updated_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(student_id, school_id)
+      );
+      CREATE TABLE IF NOT EXISTS peer_reviews (
+        id SERIAL PRIMARY KEY,
+        submission_id INTEGER REFERENCES proof_of_work_submissions(id) ON DELETE CASCADE,
+        reviewer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        score NUMERIC(5,2),
+        feedback TEXT,
+        credits_earned NUMERIC(4,2) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(submission_id, reviewer_id)
+      );
+      CREATE TABLE IF NOT EXISTS dropout_predictions (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        risk_score NUMERIC(5,2),
+        risk_level VARCHAR(20) DEFAULT 'low' CHECK (risk_level IN ('low','medium','high','critical')),
+        factors JSONB,
+        intervention_triggered BOOLEAN DEFAULT false,
+        intervention_type VARCHAR(100),
+        predicted_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS skill_passport (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+        passport_id VARCHAR(100) UNIQUE NOT NULL,
+        skills JSONB DEFAULT '[]',
+        external_sources JSONB DEFAULT '[]',
+        verified_at TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS course_evolution_logs (
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        change_type VARCHAR(100),
+        source VARCHAR(255),
+        suggested_update TEXT,
+        status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending','applied','rejected')),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    console.log('Migration 8 complete');
+  } catch (err) { console.error('Migration 8 error:', err.message); }
+  finally { process.exit(); }
+};
+migrate8();
+=== src/config/migrate9.js ===
+const pool = require('./db');
+const migrate9 = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS course_assignments (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        teacher_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        assigned_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        assigned_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(course_id, teacher_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS suggestions (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        role VARCHAR(50) NOT NULL,
+        content TEXT NOT NULL,
+        status VARCHAR(50) DEFAULT 'unread' CHECK (status IN ('unread','read','addressed')),
+        admin_reply TEXT,
+        replied_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS class_sessions (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        teacher_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        code VARCHAR(10) UNIQUE NOT NULL,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS session_questions (
+        id SERIAL PRIMARY KEY,
+        session_id INTEGER REFERENCES class_sessions(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        question TEXT NOT NULL,
+        is_anonymous BOOLEAN DEFAULT false,
+        teacher_answer TEXT,
+        teacher_answered_at TIMESTAMP,
+        admin_answer TEXT,
+        admin_answered_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS b2b_tickets (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        submitted_by INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        subject VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        type VARCHAR(50) DEFAULT 'enquiry' CHECK (type IN ('enquiry','complaint','billing','bug','other')),
+        status VARCHAR(50) DEFAULT 'open' CHECK (status IN ('open','in_progress','resolved','closed')),
+        priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN ('low','medium','high','urgent')),
+        super_admin_reply TEXT,
+        replied_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        replied_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS announcements (
+        id SERIAL PRIMARY KEY,
+        school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+        created_by INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        target_role VARCHAR(50) DEFAULT 'all' CHECK (target_role IN ('all','student','teacher','parent')),
+        class_id INTEGER REFERENCES classes(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    console.log('Migration 9 complete');
+  } catch (err) { console.error('Migration 9 error:', err.message); }
+  finally { process.exit(); }
+};
+migrate9();
+=== src/config/migrate_assignments.js ===
+const pool = require('./db');
+
+const run = async () => {
+  try {
+    await pool.query(`
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS instructions TEXT;
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS allow_late BOOLEAN DEFAULT true;
+
+      ALTER TABLE submissions ALTER COLUMN file_url DROP NOT NULL;
+      ALTER TABLE submissions ADD COLUMN IF NOT EXISTS text_answer TEXT;
+      ALTER TABLE submissions ADD COLUMN IF NOT EXISTS score NUMERIC(5,2);
+      ALTER TABLE submissions ADD COLUMN IF NOT EXISTS feedback TEXT;
+      ALTER TABLE submissions ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'submitted';
+      ALTER TABLE submissions ADD COLUMN IF NOT EXISTS graded_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
+      ALTER TABLE submissions ADD COLUMN IF NOT EXISTS graded_at TIMESTAMP;
+    `);
+    console.log('Assignments migration done');
+  } catch (err) {
+    console.error('Migration failed:', err.message);
+  } finally {
+    await pool.end();
+  }
+};
+
+run();
+=== src/config/migrate_quiz.js ===
+const pool = require('./db');
+
+const run = async () => {
+  try {
+    await pool.query(`
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS instructions TEXT;
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS time_limit_minutes INTEGER;
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS randomize_questions BOOLEAN DEFAULT false;
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS max_attempts INTEGER DEFAULT 1;
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS pass_percent INTEGER DEFAULT 50;
+      ALTER TABLE assessments ADD COLUMN IF NOT EXISTS awards_certificate BOOLEAN DEFAULT false;
+      ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS attempt_count INTEGER DEFAULT 1;
+      ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'submitted';
+      ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS started_at TIMESTAMP;
+      ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS last_score NUMERIC(5,2);
+      ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS passed BOOLEAN DEFAULT false;
+      ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS question_order JSONB;
+      UPDATE quiz_attempts SET last_score=score WHERE last_score IS NULL AND score IS NOT NULL;
+    `);
+    const r = await pool.query(`
+      SELECT COUNT(*)::int AS n FROM information_schema.columns
+      WHERE table_schema='public' AND (
+        (table_name='assessments' AND column_name IN ('instructions','time_limit_minutes','randomize_questions','max_attempts','pass_percent','awards_certificate'))
+        OR (table_name='quiz_attempts' AND column_name IN ('attempt_count','status','started_at','last_score','passed','question_order'))
+      )`);
+    console.log(`Quiz migration done: ${r.rows[0].n} of 12 columns present`);
+  } catch (err) {
+    console.error('Migration failed:', err.message);
+  } finally {
+    process.exit(0);
+  }
+};
+
+run();
+=== src/config/migrate_reviews.js ===
+const pool = require('./db');
+
+const run = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS course_reviews (
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        comment TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(course_id, student_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_course_reviews_course ON course_reviews(course_id);
+    `);
+    const r = await pool.query(`SELECT to_regclass('public.course_reviews') AS t`);
+    console.log(r.rows[0].t ? 'Reviews migration done: table present' : 'Table missing');
+  } catch (err) {
+    console.error('Migration failed:', err.message);
+  } finally {
+    process.exit(0);
+  }
+};
+
+run();
+=== src/config/migrate_subs.js ===
+const pool = require('./db');
+(async () => {
+  try {
+    await pool.query(`
+      ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS paystack_reference VARCHAR(100);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_reference ON subscriptions(paystack_reference) WHERE paystack_reference IS NOT NULL;
+    `);
+    const r = await pool.query(`select column_name from information_schema.columns where table_name='subscriptions' and column_name='paystack_reference'`);
+    console.log(r.rowCount ? 'Subscriptions migration done' : 'Column missing');
+  } catch (e) { console.error('Migration failed:', e.message); }
+  finally { process.exit(0); }
+})();
+=== src/controllers/auth.controller.js ===
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { createUser, findUserByEmail } = require('../models/user.model');
+
+const register = async (req, res) => {
+  try {
+    const { school_id, full_name, email, password, role } = req.body;
+    if (!full_name || !email || !password || !role) {
+      return res.status(400).json({ error: 'All fields required' });
+    }
+    const existing = await findUserByEmail(email);
+    if (existing) return res.status(400).json({ error: 'Email already exists' });
+
+    const user = await createUser({ school_id, full_name, email, password, role });
+    const token = jwt.sign(
+      { id: user.id, role: user.role, school_id: user.school_id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    res.status(201).json({ user, token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await findUserByEmail(email);
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role, school_id: user.school_id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    res.json({
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role,
+        school_id: user.school_id,
+      },
+      token,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { register, login };
+=== src/controllers/school.controller.js ===
+const { createSchool, findSchoolBySubdomain, findSchoolById, getAllSchools } = require('../models/school.model');
+
+const registerSchool = async (req, res) => {
+  try {
+    const { name, email, phone, address, subdomain } = req.body;
+    if (!name || !email || !subdomain) {
+      return res.status(400).json({ error: 'Name, email and subdomain are required' });
+    }
+    const existing = await findSchoolBySubdomain(subdomain);
+    if (existing) return res.status(400).json({ error: 'Subdomain already taken' });
+
+    const school = await createSchool({ name, email, phone, address, subdomain });
+    res.status(201).json({ school });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const getSchool = async (req, res) => {
+  try {
+    const school = await findSchoolById(req.params.id);
+    if (!school) return res.status(404).json({ error: 'School not found' });
+    res.json({ school });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const listSchools = async (req, res) => {
+  try {
+    const schools = await getAllSchools();
+    res.json({ schools });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { registerSchool, getSchool, listSchools };
+=== src/controllers/attendance.controller.js ===
+const { markAttendance, getAttendanceByClass, getAttendanceByStudent } = require('../models/attendance.model');
+const { validId, sameSchool, canSeeStudent, getUser, getClass } = require('../utils/access');
+const { sendWhatsApp } = require('../services/whatsapp.service');
+const pool = require('../config/db');
+
+const STAFF = ['super_admin', 'school_admin', 'teacher'];
+
+const mark = async (req, res) => {
+  try {
+    const { student_id, class_id, date, status } = req.body;
+    if (!validId(student_id) || !validId(class_id) || !date || !status) {
+      return res.status(400).json({ error: 'student_id, class_id, date and status required' });
+    }
+    if (Number.isNaN(Date.parse(date))) return res.status(400).json({ error: 'Invalid date' });
+    if (typeof status !== 'string' || status.length > 20) return res.status(400).json({ error: 'Invalid status' });
+    const cls = await getClass(class_id);
+    if (!cls) return res.status(404).json({ error: 'Class not found' });
+    if (!sameSchool(req.user, cls.school_id)) return res.status(403).json({ error: 'Access denied' });
+    const st = await getUser(student_id);
+    if (!st || st.role !== 'student' || Number(st.school_id) !== Number(cls.school_id)) {
+      return res.status(404).json({ error: 'Student not found in this school' });
+    }
+    const record = await markAttendance({ school_id: cls.school_id, student_id: st.id, class_id: cls.id, date, status });
+
+    // WhatsApp alert for absent
+    if (status.toLowerCase() === 'absent') {
+      try {
+        const schoolRes = await pool.query('SELECT name FROM schools WHERE id=$1', [cls.school_id]);
+        const schoolName = schoolRes.rows[0]?.name || 'School';
+        const parentRes = await pool.query(
+          `SELECT u.phone, u.full_name FROM users u
+           JOIN student_parents sp ON sp.parent_id = u.id
+           WHERE sp.student_id = $1 LIMIT 1`,
+          [st.id]
+        );
+        if (parentRes.rows[0]?.phone) {
+          const formattedDate = new Date(date).toLocaleDateString('en-NG');
+          sendWhatsApp(
+            parentRes.rows[0].phone,
+            `📋 Attendance Alert\n${st.full_name} was marked ABSENT today ${formattedDate} at ${schoolName}. Please contact the school if this is incorrect.`
+          );
+        }
+
+        // Check attendance rate for low-attendance warning
+        const rateRes = await pool.query(
+          `SELECT 
+            COUNT(*) FILTER (WHERE status='present') AS present,
+            COUNT(*) AS total
+           FROM attendance WHERE student_id=$1 AND school_id=$2`,
+          [st.id, cls.school_id]
+        );
+        const { present, total } = rateRes.rows[0];
+        if (total >= 10) {
+          const rate = Math.round((Number(present) / Number(total)) * 100);
+          if (rate < 75 && parentRes.rows[0]?.phone) {
+            sendWhatsApp(
+              parentRes.rows[0].phone,
+              `⚠️ Attendance Warning\nDear ${parentRes.rows[0].full_name}, ${st.full_name}'s attendance has dropped below 75%. Current rate: ${rate}%. Please ensure regular attendance.`
+            );
+          }
+        }
+      } catch (e) {
+        console.error('WhatsApp attendance error:', e.message);
+      }
+    }
+
+    res.status(201).json({ record });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const byClass = async (req, res) => {
+  try {
+    if (!STAFF.includes(req.user.role)) return res.status(403).json({ error: 'Access denied' });
+    const cls = await getClass(req.params.class_id);
+    if (!cls) return res.status(404).json({ error: 'Class not found' });
+    if (!sameSchool(req.user, cls.school_id)) return res.status(403).json({ error: 'Access denied' });
+    const { date } = req.query;
+    const records = await getAttendanceByClass(cls.id, date);
+    res.json({ records });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const byStudent = async (req, res) => {
+  try {
+    const access = await canSeeStudent(req.user, req.params.student_id, ['school_admin', 'teacher']);
+    if (access.error) return res.status(access.code).json({ error: access.error });
+    res.json({ records: await getAttendanceByStudent(access.student.id) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { mark, byClass, byStudent };
+=== src/controllers/auditlog.controller.js ===
+const m = require('../models/auditlog.model');
+const { validId, sameSchool } = require('../utils/access');
+
+const list = async (req, res) => {
+  try {
+    if (!validId(req.params.school_id)) return res.status(404).json({ error: 'School not found' });
+    if (!sameSchool(req.user, req.params.school_id)) return res.status(403).json({ error: 'Access denied' });
+    const n = parseInt(req.query.limit, 10);
+    const limit = Number.isInteger(n) && n > 0 ? Math.min(n, 500) : 100;
+    res.json({ logs: await m.getBySchool(req.params.school_id, limit) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+module.exports = { list };
+=== src/controllers/customrole.controller.js ===
+const pool = require('../config/db');
+const m = require('../models/customrole.model');
+const { validId, sameSchool, getUser, schoolOfRow, schoolForCreate } = require('../utils/access');
+const fail = (res, err) => res.status(500).json({ error: err.message });
+
+const cleanPerms = (p) =>
+  Array.isArray(p) && p.length <= 50 && p.every((x) => typeof x === 'string' && x.length >= 1 && x.length <= 50) ? p : null;
+
+const create = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !String(name).trim()) return res.status(400).json({ error: 'name required' });
+    const permissions = req.body.permissions === undefined ? [] : cleanPerms(req.body.permissions);
+    if (!permissions) return res.status(400).json({ error: 'permissions must be a list of short text values' });
+    const school_id = schoolForCreate(req, res);
+    if (school_id === null) return;
+    const r = await m.create({ school_id, name: String(name).trim().slice(0, 100), permissions });
+    res.status(201).json({ role: r });
+  } catch (err) { fail(res, err); }
+};
+
+const list = async (req, res) => {
+  try {
+    if (!validId(req.params.school_id)) return res.status(404).json({ error: 'School not found' });
+    if (!sameSchool(req.user, req.params.school_id)) return res.status(403).json({ error: 'Access denied' });
+    res.json({ roles: await m.getBySchool(req.params.school_id) });
+  } catch (err) { fail(res, err); }
+};
+
+const update = async (req, res) => {
+  try {
+    const s = await schoolOfRow('custom_roles', req.params.id);
+    if (!s) return res.status(404).json({ error: 'Role not found' });
+    if (!sameSchool(req.user, s.school_id)) return res.status(403).json({ error: 'Access denied' });
+    const cur = (await pool.query(`SELECT name, permissions FROM custom_roles WHERE id=$1`, [s.id])).rows[0];
+    const name = req.body.name === undefined ? cur.name : String(req.body.name).trim().slice(0, 100);
+    if (!name) return res.status(400).json({ error: 'name cannot be empty' });
+    const permissions = req.body.permissions === undefined ? cur.permissions : cleanPerms(req.body.permissions);
+    if (!permissions) return res.status(400).json({ error: 'permissions must be a list of short text values' });
+    res.json({ role: await m.update(s.id, { name, permissions }) });
+  } catch (err) { fail(res, err); }
+};
+
+const remove = async (req, res) => {
+  try {
+    const s = await schoolOfRow('custom_roles', req.params.id);
+    if (!s) return res.status(404).json({ error: 'Role not found' });
+    if (!sameSchool(req.user, s.school_id)) return res.status(403).json({ error: 'Access denied' });
+    await m.remove(s.id);
+    res.json({ message: 'Deleted' });
+  } catch (err) { fail(res, err); }
+};
+
+const assign = async (req, res) => {
+  try {
+    const { user_id, role_id } = req.body;
+    if (!validId(user_id) || !validId(role_id)) return res.status(400).json({ error: 'user_id and role_id required' });
+    const role = await schoolOfRow('custom_roles', role_id);
+    if (!role) return res.status(404).json({ error: 'Role not found' });
+    if (!sameSchool(req.user, role.school_id)) return res.status(403).json({ error: 'Access denied' });
+    const user = await getUser(user_id);
+    if (!user || Number(user.school_id) !== Number(role.school_id)) return res.status(404).json({ error: 'User not found in this school' });
+    await m.assignToUser(user.id, role.id);
+    res.json({ message: 'Assigned' });
+  } catch (err) { fail(res, err); }
+};
+
+const userRoles = async (req, res) => {
+  try {
+    const target = await getUser(req.params.user_id);
+    if (!target) return res.status(404).json({ error: 'User not found' });
+    const own = Number(req.user.id) === Number(target.id);
+    const admin = ['school_admin', 'super_admin'].includes(req.user.role) && sameSchool(req.user, target.school_id);
+    if (!own && !admin) return res.status(403).json({ error: 'Access denied' });
+    res.json({ roles: await m.getUserRoles(target.id) });
+  } catch (err) { fail(res, err); }
+};
+
+module.exports = { create, list, update, remove, assign, userRoles };
+=== src/controllers/authsecure.controller.js ===
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const pool = require('../config/db');
+const { createUser, findUserByEmail } = require('../models/user.model');
+const { sendWhatsApp } = require('../services/whatsapp.service');
+
+const SELF_ROLES = ['student', 'teacher', 'parent'];
+
+const optionalUser = (req) => {
+  const h = req.headers.authorization;
+  if (!h || !h.startsWith('Bearer ')) return null;
+  try { return jwt.verify(h.split(' ')[1], process.env.JWT_SECRET); } catch { return null; }
+};
+
+const register = async (req, res) => {
+  try {
+    const { full_name, email, password, role } = req.body;
+    if (!full_name || !email || !password || !role) {
+      return res.status(400).json({ error: 'All fields required' });
+    }
+    if (typeof full_name !== 'string' || typeof email !== 'string' || typeof password !== 'string' || typeof role !== 'string') {
+      return res.status(400).json({ error: 'Invalid input' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const caller = optionalUser(req);
+    let school_id;
+
+    if (caller && caller.role === 'super_admin') {
+      if (![...SELF_ROLES, 'school_admin', 'super_admin'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role' });
+      }
+      school_id = req.body.school_id || null;
+    } else if (caller && caller.role === 'school_admin') {
+      if (!SELF_ROLES.includes(role)) {
+        return res.status(403).json({ error: 'You can only create students, teachers and parents' });
+      }
+      if (!caller.school_id) return res.status(403).json({ error: 'Access denied' });
+      school_id = caller.school_id;
+    } else {
+      if (role !== 'school_admin') {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      const sid = Number(req.body.school_id);
+      if (!Number.isInteger(sid) || sid <= 0) {
+        return res.status(400).json({ error: 'school_id required' });
+      }
+      const school = await pool.query(`SELECT id FROM schools WHERE id=$1`, [sid]);
+      if (!school.rowCount) return res.status(400).json({ error: 'School not found' });
+      const hasAdmin = await pool.query(
+        `SELECT 1 FROM users WHERE school_id=$1 AND role='school_admin' LIMIT 1`, [sid]
+      );
+      if (hasAdmin.rowCount) {
+        return res.status(403).json({ error: 'This school already has an administrator. Ask them to create your account.' });
+      }
+      school_id = sid;
+    }
+
+    const existing = await findUserByEmail(email);
+    if (existing) return res.status(400).json({ error: 'Email already exists' });
+
+    const user = await createUser({ school_id, full_name, email, password, role });
+
+    // Welcome WhatsApp
+    try {
+      if (user.phone) {
+        const schoolRes = school_id ? await pool.query('SELECT name FROM schools WHERE id=$1', [school_id]) : null;
+        const schoolName = schoolRes?.rows[0]?.name || 'Edunova';
+        sendWhatsApp(
+          user.phone,
+          `👋 Welcome to ${schoolName} on Edunova!\nHi ${full_name}, your account has been created.\nEmail: ${email}\nPassword: ${password}\nLogin at: https://edunova-frontend-gkaj.vercel.app`
+        );
+      }
+    } catch (e) {
+      console.error('WhatsApp welcome error:', e.message);
+    }
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role, school_id: user.school_id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    res.status(201).json({ user, token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const forgotPassword = async (req, res) => {
+  res.json({ message: 'If this account exists, ask your school administrator to reset your password.' });
+};
+
+const adminResetPassword = async (req, res) => {
+  try {
+    if (!/^\d+$/.test(req.params.user_id)) return res.status(404).json({ error: 'User not found' });
+    const r = await pool.query(
+      `SELECT id, full_name, email, role, school_id FROM users WHERE id=$1`, [req.params.user_id]
+    );
+    const target = r.rows[0];
+    if (!target) return res.status(404).json({ error: 'User not found' });
+
+    const caller = req.user;
+    if (caller.role !== 'super_admin') {
+      if (caller.school_id == null || Number(caller.school_id) !== Number(target.school_id)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      if (!SELF_ROLES.includes(target.role)) {
+        return res.status(403).json({ error: 'Only students, teachers and parents can be reset here' });
+      }
+    }
+    if (target.id === caller.id) {
+      return res.status(400).json({ error: 'Use change password for your own account' });
+    }
+
+    const alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let temp = '';
+    for (let i = 0; i < 10; i++) temp += alphabet[crypto.randomInt(alphabet.length)];
+    const hashed = await bcrypt.hash(temp, 10);
+    await pool.query(
+      `UPDATE users SET password=$1, reset_token=NULL, reset_token_expires=NULL WHERE id=$2`,
+      [hashed, target.id]
+    );
+    res.json({
+      temp_password: temp,
+      user: { id: target.id, full_name: target.full_name, email: target.email },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { register, forgotPassword, adminResetPassword };
+=== src/middleware/auth.middleware.js ===
+const jwt = require('jsonwebtoken');
+
+const protect = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+const authorize = (...roles) => (req, res, next) => {
+  if (!roles.includes(req.user.role)) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  next();
+};
+
+module.exports = { protect, authorize };
+=== src/models/user.model.js ===
+const pool = require('../config/db');
+const bcrypt = require('bcryptjs');
+
+const createUser = async ({ school_id, full_name, email, password, role }) => {
+  const hashed = await bcrypt.hash(password, 10);
+  const result = await pool.query(
+    `INSERT INTO users (school_id, full_name, email, password, role)
+     VALUES ($1, $2, $3, $4, $5) RETURNING id, full_name, email, role, school_id`,
+    [school_id, full_name, email, hashed, role]
+  );
+  return result.rows[0];
+};
+
+const findUserByEmail = async (email) => {
+  const result = await pool.query(
+    `SELECT * FROM users WHERE email = $1`,
+    [email]
+  );
+  return result.rows[0];
+};
+
+module.exports = { createUser, findUserByEmail };
+=== src/models/school.model.js ===
+const pool = require('../config/db');
+
+const createSchool = async ({ name, email, phone, address, subdomain }) => {
+  const result = await pool.query(
+    `INSERT INTO schools (name, email, phone, address, subdomain)
+     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [name, email, phone, address, subdomain]
+  );
+  return result.rows[0];
+};
+
+const findSchoolBySubdomain = async (subdomain) => {
+  const result = await pool.query(
+    `SELECT * FROM schools WHERE subdomain = $1`,
+    [subdomain]
+  );
+  return result.rows[0];
+};
+
+const findSchoolById = async (id) => {
+  const result = await pool.query(
+    `SELECT * FROM schools WHERE id = $1`,
+    [id]
+  );
+  return result.rows[0];
+};
+
+const getAllSchools = async () => {
+  const result = await pool.query(`SELECT * FROM schools ORDER BY created_at DESC`);
+  return result.rows;
+};
+
+module.exports = { createSchool, findSchoolBySubdomain, findSchoolById, getAllSchools };
+=== src/models/auditlog.model.js ===
+const pool = require('../config/db');
+const log = async ({ school_id, user_id, action, entity, entity_id, meta }) => { await pool.query(`INSERT INTO audit_logs (school_id,user_id,action,entity,entity_id,meta) VALUES ($1,$2,$3,$4,$5,$6)`, [school_id, user_id, action, entity, entity_id, meta ? JSON.stringify(meta) : null]); };
+const getBySchool = async (school_id, limit = 100) => { const r = await pool.query(`SELECT al.*,u.full_name,u.role FROM audit_logs al LEFT JOIN users u ON u.id=al.user_id WHERE al.school_id=$1 ORDER BY al.created_at DESC LIMIT $2`, [school_id, limit]); return r.rows; };
+module.exports = { log, getBySchool };
+=== src/models/customrole.model.js ===
+const pool = require('../config/db');
+const create = async ({ school_id, name, permissions }) => { const r = await pool.query(`INSERT INTO custom_roles (school_id,name,permissions) VALUES ($1,$2,$3) RETURNING *`, [school_id, name, JSON.stringify(permissions || [])]); return r.rows[0]; };
+const getBySchool = async (school_id) => { const r = await pool.query(`SELECT * FROM custom_roles WHERE school_id=$1 ORDER BY name`, [school_id]); return r.rows; };
+const update = async (id, { name, permissions }) => { const r = await pool.query(`UPDATE custom_roles SET name=$1,permissions=$2 WHERE id=$3 RETURNING *`, [name, JSON.stringify(permissions), id]); return r.rows[0]; };
+const remove = async (id) => { await pool.query(`DELETE FROM custom_roles WHERE id=$1`, [id]); };
+const assignToUser = async (user_id, role_id) => { await pool.query(`INSERT INTO user_custom_roles (user_id,role_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [user_id, role_id]); };
+const getUserRoles = async (user_id) => { const r = await pool.query(`SELECT cr.* FROM custom_roles cr JOIN user_custom_roles ucr ON ucr.role_id=cr.id WHERE ucr.user_id=$1`, [user_id]); return r.rows; };
+const hasPermission = async (user_id, permission) => { const r = await pool.query(`SELECT cr.permissions FROM custom_roles cr JOIN user_custom_roles ucr ON ucr.role_id=cr.id WHERE ucr.user_id=$1`, [user_id]); return r.rows.some(row => row.permissions.includes(permission)); };
+module.exports = { create, getBySchool, update, remove, assignToUser, getUserRoles, hasPermission };
+=== src/routes/auth.routes.js ===
+const router = require('express').Router();
+const { login } = require('../controllers/auth.controller');
+const { register, forgotPassword, adminResetPassword } = require('../controllers/authsecure.controller');
+const { protect, authorize } = require('../middleware/auth.middleware');
+const pool = require('../config/db');
+const bcrypt = require('bcryptjs');
+
+const isSelf = (req) => Number(req.user.id) === Number(req.params.id);
+
+router.post('/register', register);
+router.post('/login', login);
+router.post('/forgot-password', forgotPassword);
+router.post('/admin-reset/:user_id', protect, authorize('school_admin', 'super_admin'), adminResetPassword);
+
+router.get('/users/:school_id', protect, async (req, res) => {
+  if (req.user.role !== 'super_admin' && Number(req.user.school_id) !== Number(req.params.school_id)) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  try {
+    const result = await pool.query(
+      `SELECT id, full_name, email, role, is_active, created_at, phone, avatar_url FROM users WHERE school_id=$1`,
+      [req.params.school_id]
+    );
+    res.json({ users: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/profile/:id', protect, async (req, res) => {
+  if (!isSelf(req)) return res.status(403).json({ error: 'Access denied' });
+  const full_name = String(req.body.full_name || '').trim();
+  const email = String(req.body.email || '').trim();
+  if (!full_name || !email) return res.status(400).json({ error: 'Name and email are required' });
+  try {
+    const result = await pool.query(
+      `UPDATE users SET full_name=$1, email=$2 WHERE id=$3
+       RETURNING id, full_name, email, role, school_id`,
+      [full_name, email, req.user.id]
+    );
+    res.json({ user: result.rows[0] });
+  } catch (err) {
+    if (err.code === '23505') return res.status(400).json({ error: 'Email already in use' });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/password/:id', protect, async (req, res) => {
+  if (!isSelf(req)) return res.status(403).json({ error: 'Access denied' });
+  const { current_password, new_password } = req.body;
+  if (!current_password || typeof new_password !== 'string' || new_password.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  }
+  try {
+    const result = await pool.query(`SELECT password FROM users WHERE id=$1`, [req.user.id]);
+    const user = result.rows[0];
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const match = await bcrypt.compare(String(current_password), user.password);
+    if (!match) return res.status(400).json({ error: 'Current password incorrect' });
+    const hashed = await bcrypt.hash(new_password, 10);
+    await pool.query(`UPDATE users SET password=$1 WHERE id=$2`, [hashed, req.user.id]);
+    res.json({ message: 'Password updated' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  try {
+    const result = await pool.query(
+      `SELECT * FROM users WHERE reset_token=$1 AND reset_token_expires > NOW()`,
+      [token]
+    );
+    if (!result.rows[0]) return res.status(400).json({ error: 'Invalid or expired token' });
+    const hashed = await bcrypt.hash(password, 10);
+    await pool.query(
+      `UPDATE users SET password=$1, reset_token=NULL, reset_token_expires=NULL WHERE id=$2`,
+      [hashed, result.rows[0].id]
+    );
+    res.json({ message: 'Password reset successful' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+module.exports = router;
+=== src/routes/school.routes.js ===
+const router = require('express').Router();
+const pool = require('../config/db');
+const { registerSchool, getSchool, listSchools } = require('../controllers/school.controller');
+const { protect, authorize } = require('../middleware/auth.middleware');
+const { validId, sameSchool } = require('../utils/access');
+
+const ownSchool = (req, res, next) => {
+  if (!validId(req.params.id)) return res.status(404).json({ error: 'School not found' });
+  if (!sameSchool(req.user, req.params.id)) return res.status(403).json({ error: 'Access denied' });
+  next();
+};
+
+router.post('/', protect, authorize('super_admin'), registerSchool);
+router.get('/', protect, authorize('super_admin'), listSchools);
+
+// Public: used by each school's public website
+router.get('/subdomain/:subdomain', async (req, res) => {
+  const { findSchoolBySubdomain } = require('../models/school.model');
+  try {
+    const school = await findSchoolBySubdomain(req.params.subdomain);
+    if (!school) return res.status(404).json({ error: 'School not found' });
+    res.json({ school });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Public onboarding endpoint - no auth required
+router.post('/onboard', async (req, res) => {
+  const { createSchool, findSchoolBySubdomain } = require('../models/school.model');
+  try {
+    const { name, email, phone, address, subdomain } = req.body;
+    if (!name || !email || !subdomain) {
+      return res.status(400).json({ error: 'Name, email and subdomain required' });
+    }
+    const existing = await findSchoolBySubdomain(subdomain);
+    if (existing) return res.status(400).json({ error: 'Subdomain already taken' });
+    const school = await createSchool({ name, email, phone, address, subdomain });
+    res.status(201).json({ school });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/:id', protect, ownSchool, getSchool);
+
+router.put('/:id/website', protect, authorize('super_admin','school_admin'), ownSchool, async (req, res) => {
+  const { external_website_url, website_config } = req.body;
+  try {
+    const result = await pool.query(
+      `UPDATE schools SET external_website_url=$1, website_config=$2 WHERE id=$3 RETURNING *`,
+      [external_website_url, website_config, req.params.id]
+    );
+    if (!result.rows[0]) return res.status(404).json({ error: 'School not found' });
+    res.json({ school: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+module.exports = router;
+=== src/routes/import.routes.js ===
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const { parse } = require('csv-parse/sync');
+const pool = require('../config/db');
+const bcrypt = require('bcryptjs');
+const { sendWhatsApp } = require('../services/whatsapp.service');
+const { sendEmail } = require('../services/email.service');
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+router.post('/students', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const school_id = req.body.school_id || req.user?.school_id;
+
+  let rows;
+  try {
+    rows = parse(req.file.buffer.toString(), { columns: true, skip_empty_lines: true, trim: true });
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid CSV: ' + e.message });
+  }
+
+  const created = [], failed = [];
+
+  for (const row of rows) {
+    try {
+      const temp = Math.random().toString(36).slice(-8);
+      const hash = await bcrypt.hash(temp, 10);
+
+      // Create student
+      const existing = await pool.query('SELECT id FROM users WHERE email=$1', [row.email]);
+      let studentId;
+      if (existing.rows.length) {
+        studentId = existing.rows[0].id;
+      } else {
+        const su = await pool.query(
+          `INSERT INTO users (full_name, email, phone, role, school_id, password_hash)
+           VALUES ($1,$2,$3,'student',$4,$5) RETURNING id`,
+          [row.full_name, row.email, row.phone, school_id, hash]
+        );
+        studentId = su.rows[0].id;
+      }
+
+      // Find/create class
+      if (row.class_name) {
+        const cls = await pool.query(
+          `INSERT INTO classes (name, school_id) VALUES ($1,$2) ON CONFLICT (name, school_id) DO UPDATE SET name=EXCLUDED.name RETURNING id`,
+          [row.class_name, school_id]
+        );
+        await pool.query(
+          `INSERT INTO class_enrollments (student_id, class_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
+          [studentId, cls.rows[0].id]
+        );
+      }
+
+      // Create parent
+      if (row.parent_email || row.parent_phone) {
+        const pe = row.parent_email || `parent_${studentId}@edunova.app`;
+        const ppass = Math.random().toString(36).slice(-8);
+        const phash = await bcrypt.hash(ppass, 10);
+        const ep = await pool.query('SELECT id FROM users WHERE email=$1', [pe]);
+        let parentId;
+        if (ep.rows.length) { parentId = ep.rows[0].id; }
+        else {
+          const pu = await pool.query(
+            `INSERT INTO users (full_name, email, phone, role, school_id, password_hash)
+             VALUES ($1,$2,$3,'parent',$4,$5) RETURNING id`,
+            [`Parent of ${row.full_name}`, pe, row.parent_phone, school_id, phash]
+          );
+          parentId = pu.rows[0].id;
+        }
+        await pool.query(
+          `INSERT INTO student_parents (student_id, parent_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
+          [studentId, parentId]
+        );
+        if (row.parent_phone) {
+          const schoolRes = await pool.query('SELECT name FROM schools WHERE id=$1', [school_id]);
+          const sname = schoolRes.rows[0]?.name || 'Your school';
+          sendWhatsApp(row.parent_phone,
+            `👋 Welcome to ${sname} on Edunova!\nHi Parent of ${row.full_name}, your account has been created.\nEmail: ${pe}\nPassword: ${ppass}\nLogin at: https://edunova-frontend-gkaj.vercel.app`
+          );
+        }
+      }
+
+      if (row.phone) {
+        const schoolRes = await pool.query('SELECT name FROM schools WHERE id=$1', [school_id]);
+        sendWhatsApp(row.phone,
+          `👋 Welcome to ${schoolRes.rows[0]?.name || 'Edunova'}!\nHi ${row.full_name}, your account has been created.\nEmail: ${row.email}\nPassword: ${temp}\nLogin at: https://edunova-frontend-gkaj.vercel.app`
+        );
+      }
+      if (row.email) {
+        sendEmail(row.email, 'welcome', { name: row.full_name, email: row.email, password: temp, school_name: 'Your School' });
+      }
+
+      created.push(row.full_name);
+    } catch (err) {
+      failed.push({ row: row.full_name || row.email, reason: err.message });
+    }
+  }
+
+  res.json({ created: created.length, failed: failed.length, errors: failed });
+});
+
+module.exports = router;
+=== src/routes/auditlog.routes.js ===
+const router = require('express').Router();
+const { protect, authorize } = require('../middleware/auth.middleware');
+const { list } = require('../controllers/auditlog.controller');
+router.get('/:school_id', protect, authorize('super_admin', 'school_admin'), list);
+module.exports = router;
+=== src/routes/customrole.routes.js ===
+const router = require('express').Router();
+const { protect, authorize } = require('../middleware/auth.middleware');
+const { create, list, update, remove, assign, userRoles } = require('../controllers/customrole.controller');
+const admin = authorize('super_admin', 'school_admin');
+router.post('/', protect, admin, create);
+router.post('/assign', protect, admin, assign);
+router.get('/user/:user_id', protect, userRoles);
+router.get('/:school_id', protect, admin, list);
+router.put('/:id', protect, admin, update);
+router.delete('/:id', protect, admin, remove);
+module.exports = router;
+=== src/routes/schooltheme.routes.js ===
+const router = require('express').Router();
+const pool = require('../config/db');
+const { protect, authorize } = require('../middleware/auth.middleware');
+
+pool.query('CREATE TABLE IF NOT EXISTS school_theme_drafts (school_id INTEGER PRIMARY KEY, config JSONB, updated_at TIMESTAMPTZ DEFAULT NOW())').catch(e => console.log('drafts table:', e.message));
+
+const HEX = /^#[0-9a-fA-F]{6}$/;
+const L = {
+  template: ['modern', 'bold', 'minimal', 'vibrant', 'professional', 'african'],
+  font: ['inter', 'jakarta', 'sora', 'poppins', 'merriweather', 'dmsans'],
+  hero_style: ['centered', 'split', 'fullscreen', 'video', 'illustrated'],
+  card_style: ['rounded', 'sharp', 'floating', 'glass', 'bordered'],
+  radius: ['sharp', 'soft', 'round'],
+  button_style: ['filled', 'outlined', 'ghost'],
+};
+const SECS = ['hero', 'stats', 'features', 'courses', 'testimonials', 'teachers', 'faq', 'contact', 'footer'];
+const str = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+const num = v => Math.max(0, Math.min(10000000, parseInt(v, 10) || 0));
+const pick = (k, v, d) => (L[k].includes(v) ? v : d);
+const hex = (v, d) => (typeof v === 'string' && HEX.test(v) ? v : d);
+const https = v => (typeof v === 'string' && /^https:\/\/[^\s"'<>()]{1,500}$/.test(v) ? v : '');
+const yt = v => (typeof v === 'string' && /^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com)\/embed\/[\w-]+$/.test(v) ? v : '');
+const date = v => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '');
+const arr = (v, n) => (Array.isArray(v) ? v.slice(0, n) : []);
+
+function cleanProgrammes(p) {
+  const out = {};
+  const src = p && typeof p === 'object' ? p : {};
+  Object.keys(src).slice(0, 200).forEach(k => {
+    if (!/^\d{1,10}$/.test(k)) return;
+    const v = src[k] || {};
+    const o = { duration: str(v.duration, 80), fees: str(v.fees, 80), requirements: str(v.requirements, 600) };
+    if (o.duration || o.fees || o.requirements) out[k] = o;
+  });
+  return out;
+}
+
+function clean(t = {}) {
+  const s = t.sections || {}, c = s.content || {}, st = c.stats || {};
+  const sections = {};
+  SECS.forEach(k => { sections[k] = s[k] !== false; });
+  sections.content = {
+    hero_cta: str(c.hero_cta, 40) || 'Apply now',
+    hero_image: https(c.hero_image),
+    video_url: yt(c.video_url),
+    about: str(c.about, 3000),
+    admissions: str(c.admissions, 2000),
+    stats: { students: num(st.students), courses: num(st.courses), teachers: num(st.teachers), years: num(st.years) },
+    testimonials: arr(c.testimonials, 12)
+      .map(x => ({ quote: str(x && x.quote, 400), name: str(x && x.name, 80), role: str(x && x.role, 80) })).filter(x => x.quote),
+    faq: arr(c.faq, 20)
+      .map(x => ({ q: str(x && x.q, 200), a: str(x && x.a, 800) })).filter(x => x.q),
+    news: arr(c.news, 30)
+      .map(x => ({ title: str(x && x.title, 150), date: date(x && x.date), body: str(x && x.body, 3000), image: https(x && x.image) })).filter(x => x.title),
+    events: arr(c.events, 30)
+      .map(x => ({ title: str(x && x.title, 150), date: date(x && x.date), place: str(x && x.place, 120) })).filter(x => x.title),
+    staff: arr(c.staff, 40)
+      .map(x => ({ name: str(x && x.name, 80), role: str(x && x.role, 100), photo: https(x && x.photo), bio: str(x && x.bio, 500) })).filter(x => x.name),
+    gallery: arr(c.gallery, 40)
+      .map(x => ({ url: https(x && x.url), caption: str(x && x.caption, 120) })).filter(x => x.url),
+    programmes: cleanProgrammes(c.programmes),
+  };
+  return {
+    template: pick('template', t.template, 'modern'),
+    primary_color: hex(t.primary_color, '#2563eb'),
+    secondary_color: hex(t.secondary_color, '#10b981'),
+    font: pick('font', t.font, 'inter'),
+    hero_style: pick('hero_style', t.hero_style, 'centered'),
+    card_style: pick('card_style', t.card_style, 'rounded'),
+    radius: pick('radius', t.radius, 'soft'),
+    button_style: pick('button_style', t.button_style, 'filled'),
+    background: hex(t.background, '#ffffff'),
+    sections,
+  };
+}
+
+const own = (req, res, next) => {
+  const u = req.user || {};
+  if (u.role === 'super_admin' || (u.school_id && String(u.school_id) === String(req.params.id))) return next();
+  res.status(403).json({ error: 'Not your school' });
+};
+
+router.put('/:id/website', protect, authorize('super_admin', 'school_admin'), own, async (req, res) => {
+  try {
+    const { external_website_url, website_config } = req.body;
+    const r = await pool.query('UPDATE schools SET external_website_url=$1, website_config=$2 WHERE id=$3 RETURNING *', [external_website_url, website_config, req.params.id]);
+    res.json({ school: r.rows[0] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/:id/theme', protect, authorize('super_admin', 'school_admin'), own, async (req, res) => {
+  try {
+    const tagline = typeof req.body.tagline === 'string' ? req.body.tagline.slice(0, 160) : null;
+    const logo = req.body.logo_url ? https(req.body.logo_url) || null : null;
+    const r = await pool.query(
+      'UPDATE schools SET theme_config=$1::jsonb, tagline=COALESCE($2,tagline), logo_url=COALESCE($3,logo_url) WHERE id=$4 RETURNING id,name,tagline,logo_url,theme_config',
+      [JSON.stringify(clean(req.body.theme_config)), tagline, logo, req.params.id]);
+    if (!r.rows[0]) return res.status(404).json({ error: 'School not found' });
+    await pool.query('DELETE FROM school_theme_drafts WHERE school_id=$1', [req.params.id]).catch(() => {});
+    res.json({ school: r.rows[0] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/:id/draft', protect, authorize('super_admin', 'school_admin'), own, async (req, res) => {
+  try {
+    const r = await pool.query('SELECT config, updated_at FROM school_theme_drafts WHERE school_id=$1', [req.params.id]);
+    res.json({ draft: r.rows[0] ? r.rows[0].config : null, updated_at: r.rows[0] ? r.rows[0].updated_at : null });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/:id/draft', protect, authorize('super_admin', 'school_admin'), own, async (req, res) => {
+  try {
+    const config = {
+      theme_config: clean(req.body.theme_config),
+      tagline: typeof req.body.tagline === 'string' ? req.body.tagline.slice(0, 160) : '',
+      logo_url: https(req.body.logo_url),
+    };
+    await pool.query(
+      'INSERT INTO school_theme_drafts (school_id, config, updated_at) VALUES ($1,$2::jsonb,NOW()) ON CONFLICT (school_id) DO UPDATE SET config=EXCLUDED.config, updated_at=NOW()',
+      [req.params.id, JSON.stringify(config)]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/:id/draft', protect, authorize('super_admin', 'school_admin'), own, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM school_theme_drafts WHERE school_id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/subdomain/:subdomain/courses', async (req, res) => {
+  try {
+    const sub = String(req.params.subdomain || '').trim().slice(0, 60);
+    const sc = await pool.query('SELECT id FROM schools WHERE lower(trim(subdomain)) = lower($1)', [sub]);
+    if (!sc.rows[0]) return res.status(404).json({ error: 'School not found' });
+    const r = await pool.query('SELECT id, title, description FROM courses WHERE school_id=$1 AND is_published = true ORDER BY created_at DESC LIMIT 100', [sc.rows[0].id]);
+    res.json({ courses: r.rows });
+  } catch (e) { res.status(500).json({ error: 'Could not load courses' }); }
+});
+
+module.exports = router;
+=== src/index.js ===
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const cors = require('cors');
+const helmet = require('helmet');
+require('dotenv').config();
+require('./config/db');
+require('./config/migrate');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: '*', methods: ['GET', 'POST'] }
+});
+
+app.use(helmet());
+app.use(cors());
+app.use(express.json());
+
+app.set('io', io);
+
+app.use('/api/auth', require('./routes/auth.routes'));
+app.use('/api/apply', require('./routes/schoolapply.routes'));
+app.use('/api/contact', require('./routes/contact.routes'));
+app.use('/api/schools', require('./routes/schooltheme.routes'));
+app.use('/api/schools', require('./routes/school.routes'));
+app.use('/api/classes', require('./routes/class.routes'));
+app.use('/api/timetable', require('./routes/timetable.routes'));
+app.use('/api/courses', require('./routes/course.routes'));
+app.use('/api/lessons', require('./routes/lesson.routes'));
+app.use('/api/assessments', require('./routes/assessment.routes'));
+app.use('/api/assignments', require('./routes/assignment.routes'));
+app.use('/api/reviews', require('./routes/review.routes'));
+app.use('/api/enrollments', require('./routes/enrollment.routes'));
+app.use('/api/attendance', require('./routes/attendance.routes'));
+app.use('/api/fees', require('./routes/fee.routes'));
+app.use('/api/messages', require('./routes/message.routes'));
+app.use('/api/notifications', require('./routes/notification.routes'));
+app.use('/api/results', require('./routes/result.routes'));
+app.use('/api/upload', require('./routes/schoolimage.routes'));
+app.use('/api/upload', require('./routes/upload.routes'));
+app.use('/api/payment', require('./routes/payment.routes'));
+app.use('/api/reportcard', require('./routes/reportcard.routes'));
+app.use('/api/import', require('./routes/import.routes'));
+app.use('/api/parent', require('./routes/parent.routes'));
+app.use('/api/learning-paths', require('./routes/learningpath.routes'));
+app.use('/api/gradebook', require('./routes/gradebook.routes'));
+app.use('/api/discussions', require('./routes/discussion.routes'));
+app.use('/api/quiz', require('./routes/quiz.routes'));
+app.use('/api/progress', require('./routes/progress.routes'));
+app.use('/api/certificates', require('./routes/certificate.routes'));
+app.use('/api/student-classes', require('./routes/studentclass.routes'));
+app.use('/api/departments', require('./routes/department.routes'));
+app.use('/api/programs', require('./routes/program.routes'));
+app.use('/api/batches', require('./routes/batch.routes'));
+app.use('/api/semesters', require('./routes/semester.routes'));
+app.use('/api/tickets', require('./routes/ticket.routes'));
+app.use('/api/coupons', require('./routes/coupon.routes'));
+app.use('/api/audit-logs', require('./routes/auditlog.routes'));
+app.use('/api/competencies', require('./routes/competency.routes'));
+app.use('/api/proctoring', require('./routes/proctoring.routes'));
+app.use('/api/custom-roles', require('./routes/customrole.routes'));
+app.use('/api/automations', require('./routes/automation.routes'));
+app.use('/api/scorm', require('./routes/scorm.routes'));
+app.use('/api/transcripts', require('./routes/transcript.routes'));
+app.use('/api/curriculum', require('./routes/curriculum.routes'));
+app.use('/api/accreditation', require('./routes/accreditation.routes'));
+app.use('/api/virtual-labs', require('./routes/virtuallab.routes'));
+app.use('/api/analytics', require('./routes/analytics.routes'));
+app.use('/api/ai-courses', require('./routes/aicourse.routes'));
+app.use('/api/ai-tutor', require('./routes/aitutor.routes'));
+app.use('/api/skill-gap', require('./routes/skillgap.routes'));
+app.use('/api/adaptive', require('./routes/adaptive.routes'));
+app.use('/api/blockchain', require('./routes/blockchain.routes'));
+app.use('/api/career', require('./routes/career.routes'));
+app.use('/api/learning-twin', require('./routes/learningtwin.routes'));
+app.use('/api/proof-of-work', require('./routes/proofofwork.routes'));
+app.use('/api/peer-review', require('./routes/peerreview.routes'));
+app.use('/api/dropout', require('./routes/dropout.routes'));
+app.use('/api/skill-passport', require('./routes/skillpassport.routes'));
+app.use('/api/course-evolution', require('./routes/courseevolution.routes'));
+app.use('/api/course-assignments', require('./routes/courseassignment.routes'));
+app.use('/api/suggestions', require('./routes/suggestion.routes'));
+app.use('/api/class-sessions', require('./routes/classsession.routes'));
+app.use('/api/b2b-tickets', require('./routes/b2bticket.routes'));
+app.use('/api/announcements', require('./routes/announcement.routes'));
+app.use('/api/subscription', require('./routes/subscription.routes'));
+
+app.get('/', (req, res) => {
+  res.json({ message: 'Edunova API running' });
+});
+
+require('./socket')(io);
+
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+module.exports = { app, io };
+=== src/services/whatsapp.service.js ===
+const sendWhatsApp = async (phone, message) => {
+  if (!phone) return;
+  try {
+    const raw = String(phone).replace(/\D/g, '');
+    const formatted = raw.startsWith('0') ? '234' + raw.slice(1) : raw;
+    const res = await fetch(`${process.env.WAHA_URL}/api/sendText`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': process.env.WAHA_API_KEY,
+      },
+      body: JSON.stringify({
+        chatId: `${formatted}@c.us`,
+        text: message,
+        session: 'default',
+      }),
+    });
+    if (!res.ok) console.error('WhatsApp send failed:', await res.text());
+  } catch (err) {
+    console.error('WhatsApp error:', err.message);
+  }
+};
+
+module.exports = { sendWhatsApp };
+=== src/services/email.service.js ===
+const RESEND_KEY = process.env.RESEND_API_KEY;
+const FROM = 'Edunova <no-reply@edunova.app>';
+
+const header = (schoolName) => `
+  <div style="background:#2563eb;padding:24px;text-align:center">
+    <h1 style="color:#fff;margin:0;font-family:sans-serif">EDUNOVA</h1>
+    <p style="color:#bfdbfe;margin:4px 0 0;font-size:13px">${schoolName || 'Edunova'}</p>
+  </div>`;
+
+const footer = `<div style="padding:16px;text-align:center;font-size:11px;color:#9ca3af;font-family:sans-serif">
+  © Edunova • <a href="#" style="color:#9ca3af">Unsubscribe</a></div>`;
+
+const wrap = (body, schoolName) =>
+  `<div style="max-width:520px;margin:0 auto;background:#f9fafb;font-family:sans-serif">
+    ${header(schoolName)}<div style="padding:24px">${body}</div>${footer}</div>`;
+
+const templates = {
+  welcome: (d) => ({
+    subject: `Welcome to ${d.school_name} on Edunova`,
+    html: wrap(`<h2 style="color:#1f2937">Hi ${d.name}! 👋</h2>
+      <p style="color:#4b5563">Your account has been created on Edunova.</p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <tr><td style="padding:6px;color:#6b7280">Email</td><td style="padding:6px;font-weight:600">${d.email}</td></tr>
+        <tr><td style="padding:6px;color:#6b7280">Password</td><td style="padding:6px;font-weight:600">${d.password}</td></tr>
+      </table>
+      <a href="https://edunova-frontend-gkaj.vercel.app" style="display:block;margin-top:20px;background:#2563eb;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;text-align:center;font-weight:600">Login to Edunova</a>`, d.school_name),
+  }),
+  fee_notice: (d) => ({
+    subject: `Fee Notice: NGN${d.amount} due for ${d.student_name}`,
+    html: wrap(`<h2 style="color:#1f2937">Fee Payment Required</h2>
+      <p style="color:#4b5563">A fee has been assigned to <strong>${d.student_name}</strong>.</p>
+      <div style="background:#eff6ff;border-left:4px solid #2563eb;padding:16px;border-radius:4px;margin:16px 0">
+        <p style="margin:0;font-size:14px;color:#1e40af"><strong>${d.description}</strong></p>
+        <p style="margin:8px 0 0;font-size:24px;font-weight:700;color:#2563eb">NGN${Number(d.amount).toLocaleString()}</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#6b7280">Due: ${d.due_date}</p>
+      </div>
+      <a href="https://edunova-frontend-gkaj.vercel.app/payment" style="display:block;background:#2563eb;color:#fff;text-decoration:none;padding:12px;border-radius:8px;text-align:center;font-weight:600">Pay Now</a>`, d.school_name),
+  }),
+  payment_receipt: (d) => ({
+    subject: `Payment Confirmed - NGN${d.amount} received`,
+    html: wrap(`<div style="background:#dcfce7;border-radius:8px;padding:20px;text-align:center;margin-bottom:16px">
+        <p style="font-size:32px;margin:0">✅</p>
+        <h2 style="color:#16a34a;margin:8px 0">Payment Confirmed</h2>
+        <p style="font-size:28px;font-weight:700;color:#15803d;margin:0">NGN${Number(d.amount).toLocaleString()}</p>
+      </div>
+      <table style="width:100%;font-size:13px;color:#4b5563">
+        <tr><td style="padding:4px">Student</td><td style="padding:4px;font-weight:600">${d.student_name}</td></tr>
+        <tr><td style="padding:4px">Description</td><td style="padding:4px">${d.description}</td></tr>
+        <tr><td style="padding:4px">Reference</td><td style="padding:4px;font-family:monospace">${d.reference}</td></tr>
+        <tr><td style="padding:4px">Date</td><td style="padding:4px">${new Date().toLocaleString()}</td></tr>
+      </table>`, d.school_name),
+  }),
+  result: (d) => ({
+    subject: `Your result for ${d.assessment_title} is ready`,
+    html: wrap(`<h2 style="color:#1f2937">Result Available 📊</h2>
+      <p style="color:#4b5563">Hi <strong>${d.student_name}</strong>, your result for <strong>${d.assessment_title}</strong> is ready.</p>
+      <div style="background:#eff6ff;border-radius:8px;padding:16px;text-align:center;margin:16px 0">
+        <p style="font-size:36px;font-weight:700;color:#2563eb;margin:0">${d.score}/${d.total}</p>
+        <p style="color:#6b7280;margin:4px 0 0">Score</p>
+      </div>`, d.school_name),
+  }),
+  announcement: (d) => ({
+    subject: `${d.school_name}: ${d.title}`,
+    html: wrap(`<h2 style="color:#1f2937">📢 ${d.title}</h2>
+      <p style="color:#4b5563;line-height:1.6">${d.body}</p>`, d.school_name),
+  }),
+};
+
+async function sendEmail(to, template, data) {
+  if (!RESEND_KEY || !to) return;
+  const tmpl = templates[template];
+  if (!tmpl) return;
+  const { subject, html } = tmpl(data);
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: FROM, to, subject, html }),
+    });
+  } catch (err) {
+    console.error('Email error:', err.message);
+  }
+}
+
+module.exports = { sendEmail };
+=== src/utils/access.js ===
+const pool = require('../config/db');
+
+const validId = (v) => /^\d+$/.test(String(v));
+
+const sameSchool = (user, schoolId) =>
+  user.role === 'super_admin' ||
+  (user.school_id != null && schoolId != null && Number(user.school_id) === Number(schoolId));
+
+const one = async (sql, id) => {
+  if (!validId(id)) return null;
+  const r = await pool.query(sql, [id]);
+  return r.rows[0] || null;
+};
+const getUser = (id) => one(`SELECT id, role, school_id FROM users WHERE id=$1`, id);
+const getClass = (id) => one(`SELECT id, school_id FROM classes WHERE id=$1`, id);
+const getCourse = (id) => one(`SELECT id, school_id FROM courses WHERE id=$1`, id);
+
+// id and school of a row in one of the school-owned tables
+const TABLES = ['departments', 'programs', 'batches', 'semesters', 'custom_roles', 'automation_rules', 'competencies'];
+const schoolOfRow = (table, id) => (TABLES.includes(table) ? one(`SELECT id, school_id FROM ${table} WHERE id=$1`, id) : null);
+
+// The school a new record belongs to: the admin's own, or (for a super admin) the one named in the request
+const schoolForCreate = (req, res) => {
+  if (req.user.role === 'super_admin') {
+    if (!validId(req.body.school_id)) { res.status(400).json({ error: 'school_id required' }); return null; }
+    return Number(req.body.school_id);
+  }
+  if (req.user.school_id == null) { res.status(403).json({ error: 'Access denied' }); return null; }
+  return req.user.school_id;
+};
+
+// Can this user see data about this student? Students: themselves. Parents: linked children.
+// Staff: only the roles listed in staffRoles, and only in their own school.
+const canSeeStudent = async (user, student_id, staffRoles) => {
+  const st = await getUser(student_id);
+  if (!st || st.role !== 'student') return { code: 404, error: 'Student not found' };
+  if (user.role === 'super_admin') return { student: st };
+  if (user.role === 'student') {
+    return Number(user.id) === Number(st.id) ? { student: st } : { code: 403, error: 'Access denied' };
+  }
+  if (user.role === 'parent') {
+    const link = await pool.query(
+      `SELECT 1 FROM parent_student WHERE parent_id=$1 AND student_id=$2`, [user.id, st.id]
+    );
+    return link.rowCount ? { student: st } : { code: 403, error: 'Not your child' };
+  }
+  if ((staffRoles || []).includes(user.role) && sameSchool(user, st.school_id)) return { student: st };
+  return { code: 403, error: 'Access denied' };
+};
+
+module.exports = { validId, sameSchool, canSeeStudent, getUser, getClass, getCourse, schoolOfRow, schoolForCreate };

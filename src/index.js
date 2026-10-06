@@ -5,7 +5,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 require('dotenv').config();
 require('./config/db');
-require('./config/migrate');
 
 const app = express();
 const server = http.createServer(app);
