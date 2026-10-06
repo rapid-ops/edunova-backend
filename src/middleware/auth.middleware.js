@@ -1,7 +1,31 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const pool = require('../config/db');
 
-const protect = (req, res, next) => {
+const protect = async (req, res, next) => {
   const authHeader = req.headers.authorization;
+
+  // API key auth
+  if (authHeader && authHeader.startsWith('ApiKey ')) {
+    const rawKey = authHeader.split(' ')[1];
+    const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
+    try {
+      const r = await pool.query(
+        `SELECT ak.*, s.id as sid FROM api_keys ak
+         JOIN schools s ON s.id = ak.school_id
+         WHERE ak.key_hash=$1 AND ak.is_active=true`,
+        [keyHash]
+      );
+      if (!r.rows[0]) return res.status(401).json({ error: 'Invalid API key' });
+      await pool.query(`UPDATE api_keys SET last_used_at=NOW() WHERE id=$1`, [r.rows[0].id]);
+      req.user = { id: null, role: 'school_admin', school_id: r.rows[0].school_id, api_key: true };
+      return next();
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  // JWT auth
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }

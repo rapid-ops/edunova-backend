@@ -64,7 +64,7 @@ const templates = {
     html: wrap(`<h2 style="color:#1f2937">📢 ${d.title}</h2>
       <p style="color:#4b5563;line-height:1.6">${d.body}</p>`, d.school_name),
   }),
-};
+  account_suspended: (d) => ({
 
 async function sendEmail(to, template, data) {
   if (!RESEND_KEY || !to) return;
@@ -82,4 +82,6 @@ async function sendEmail(to, template, data) {
   }
 }
 
-module.exports = { sendEmail };
+module.exports = { sendEmail   account_suspended: (d) => ({
+// Account suspension/reactivation templates are added inline in the templates object
+// Re-export sendEmail with extended templates

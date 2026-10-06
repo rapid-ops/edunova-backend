@@ -59,3 +59,7 @@ router.put('/:id/website', protect, authorize('super_admin','school_admin'), own
 });
 
 module.exports = router;
+
+const { suspend, reactivate } = require('../controllers/accountlifecycle.controller');
+router.post('/users/:user_id/suspend', protect, authorize('super_admin', 'school_admin'), suspend);
+router.post('/users/:user_id/reactivate', protect, authorize('super_admin', 'school_admin'), reactivate);
