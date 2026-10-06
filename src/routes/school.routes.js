@@ -13,6 +13,33 @@ const ownSchool = (req, res, next) => {
 router.post('/', protect, authorize('super_admin'), registerSchool);
 router.get('/', protect, authorize('super_admin'), listSchools);
 
+// Public, field-limited (no auth)
+router.get('/public', async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT s.id, s.name, s.subdomain, s.logo_url, s.primary_color, s.tagline,
+              (SELECT COUNT(*)::int FROM users u WHERE u.school_id=s.id AND u.role='student') AS student_count
+       FROM schools s WHERE s.is_active=true ORDER BY s.name LIMIT 200`
+    );
+    res.json({ schools: r.rows });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/public/:subdomain', async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT s.id, s.name, s.subdomain, s.logo_url, s.primary_color, s.tagline,
+              (SELECT COUNT(*)::int FROM users u WHERE u.school_id=s.id AND u.role='student') AS student_count,
+              (SELECT COUNT(*)::int FROM users u WHERE u.school_id=s.id AND u.role='teacher') AS teacher_count,
+              (SELECT COUNT(*)::int FROM courses c WHERE c.school_id=s.id AND c.is_published=true) AS course_count
+       FROM schools s WHERE s.subdomain=$1 AND s.is_active=true`,
+      [req.params.subdomain]
+    );
+    if (!r.rows[0]) return res.status(404).json({ error: 'School not found' });
+    res.json({ school: r.rows[0] });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Public: used by each school's public website
 router.get('/subdomain/:subdomain', async (req, res) => {
   const { findSchoolBySubdomain } = require('../models/school.model');
