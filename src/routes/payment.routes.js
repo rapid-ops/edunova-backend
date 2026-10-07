@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 const { sendWhatsApp } = require('../services/whatsapp.service');
+const { protect, authorize } = require('../middleware/auth.middleware');
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 
