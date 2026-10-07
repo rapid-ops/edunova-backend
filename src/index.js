@@ -28,6 +28,14 @@ routes.forEach(name => {
   }
 });
 
+// Manual route overrides (correct paths)
+app.use('/api/auth', require('./routes/auth.routes'));
+app.use('/api/auth', require('./routes/oauth.routes'));
+app.use('/api/mfa', require('./routes/mfa.routes'));
+app.use('/api/api-keys', require('./routes/apikey.routes'));
+app.use('/api/schools', require('./routes/school.routes'));
+app.use('/api/schools', require('./routes/schooltheme.routes'));
+
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 5000;
