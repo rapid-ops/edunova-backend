@@ -96,7 +96,6 @@ router.get('/history/:student_id', async (req, res) => {
 module.exports = router;
 
 // Revenue summary and history for school admins
-const { protect, authorize } = require('../middleware/auth.middleware');
 router.get('/revenue/:school_id', protect, authorize('super_admin','school_admin'), async (req, res) => {
   const school_id = req.params.school_id;
   try {

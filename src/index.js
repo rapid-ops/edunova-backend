@@ -1,0 +1,34 @@
+const express = require('express');
+const cors = require('cors');
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+const routes = [
+  'accreditation','adaptive','aicourse','aitutor','analytics','announcement',
+  'apikey','assessment','assignment','attendance','auditlog','auth','automation',
+  'b2bticket','batch','blockchain','career','certificate','class','classsession',
+  'competency','contact','coupon','course','courseassignment','courseevolution',
+  'curriculum','customrole','department','discussion','dropout','enrollment',
+  'fee','gradebook','import','learningpath','learningtwin','lesson','message',
+  'mfa','notification','oauth','parent','payment','peerreview','proctoring',
+  'program','progress','proofofwork','quiz','reportcard','result','review',
+  'school','schoolapply','schoolimage','schooltheme','scorm','semester',
+  'skillgap','skillpassport','studentclass','subscription','suggestion','ticket',
+  'timetable','transcript','upload','virtuallab'
+];
+
+routes.forEach(name => {
+  try {
+    const router = require(`./routes/${name}.routes`);
+    app.use(`/api/${name}s`, router);
+  } catch (e) {
+    console.warn(`Route load failed: ${name} —`, e.message);
+  }
+});
+
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
