@@ -6,7 +6,9 @@ const jwt = require('jsonwebtoken');
 
 const enableMFA = async (req, res) => {
   try {
-    const secret = speakeasy.generateSecret({ name: `Edunova (${req.user.email || req.user.id})`, length: 20 });
+    const uRow = await pool.query('SELECT email FROM users WHERE id=$1', [req.user.id]);
+    const email = uRow.rows[0]?.email || String(req.user.id);
+    const secret = speakeasy.generateSecret({ name: `Edunova (${email})`, length: 20 });
     // Store temp secret (not activated yet)
     await pool.query(`UPDATE users SET totp_secret=$1 WHERE id=$2`, [secret.base32, req.user.id]);
     const qr = await qrcode.toDataURL(secret.otpauth_url);
