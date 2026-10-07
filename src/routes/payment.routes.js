@@ -93,3 +93,29 @@ router.get('/history/:student_id', async (req, res) => {
 });
 
 module.exports = router;
+
+// Revenue summary and history for school admins
+const { protect, authorize } = require('../middleware/auth.middleware');
+router.get('/revenue/:school_id', protect, authorize('super_admin','school_admin'), async (req, res) => {
+  const school_id = req.params.school_id;
+  try {
+    const summary = await pool.query(
+      `SELECT
+        COALESCE(SUM(amount),0) AS total_revenue,
+        COALESCE(SUM(CASE WHEN DATE_TRUNC('month',paid_at)=DATE_TRUNC('month',NOW()) THEN amount ELSE 0 END),0) AS this_month,
+        COUNT(*) AS total_payments
+       FROM fees WHERE school_id=$1 AND status='paid'`,
+      [school_id]
+    );
+    const history = await pool.query(
+      `SELECT f.id, f.amount, f.description AS fee_title, f.paid_at AS created_at, u.full_name AS student_name
+       FROM fees f JOIN users u ON u.id=f.student_id
+       WHERE f.school_id=$1 AND f.status='paid'
+       ORDER BY f.paid_at DESC LIMIT 100`,
+      [school_id]
+    );
+    res.json({ ...summary.rows[0], payments: history.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
