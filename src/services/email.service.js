@@ -86,9 +86,4 @@ async function sendEmail(to, template, data) {
   }
 }
 
-module.exports = { sendEmail   account_suspended: (d) => ({
-    subject: `Account Suspended`,
-    html: wrap(`<h2>Account Suspended</h2><p>${d.reason || 'Your account has been suspended.'}</p>`, d.school_name),
-  }),
-// Account suspension/reactivation templates are added inline in the templates object
-// Re-export sendEmail with extended templates
+module.exports = { sendEmail };
