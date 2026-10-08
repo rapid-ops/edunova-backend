@@ -198,6 +198,7 @@ Hi ${st.full_name}, your result for ${a.title} is ready. Score: ${r.score}/${a.t
         );
       }
     } catch(e) { console.error('WhatsApp result error:', e.message); }
+    try { const aiC = require('./ai.controller'); aiC.updateLearningTwin({ body: { student_id: req.user.id, event_type: 'quiz_submitted', data: { score: r.score, passed: r.passed } }, user: req.user }, { json: () => {} }).catch(() => {}); } catch(e) {}
     res.json({ ...r, certificate_issued });
   } catch (err) {
     res.status(500).json({ error: err.message });
