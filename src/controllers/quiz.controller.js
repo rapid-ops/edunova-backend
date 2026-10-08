@@ -202,7 +202,7 @@ Hi ${st.full_name}, your result for ${a.title} is ready. Score: ${r.score}/${a.t
     } catch(e) { console.error('WhatsApp result error:', e.message); }
     try { const aiC = require('./ai.controller'); aiC.updateLearningTwin({ body: { student_id: req.user.id, event_type: 'quiz_submitted', data: { score: r.score, passed: r.passed } }, user: req.user }, { json: () => {} }).catch(() => {}); } catch(e) {}
     learningTwinModel.analyze(req.user.id).catch(() => {});
-    adaptiveModel.upsert({ student_id: req.user.id, course_id: a.course_id, score: r.score }).then(p => { r.difficulty_level = p ? p.difficulty_level : null; }).catch(() => {});
+    try { const up = await adaptiveModel.upsert({ student_id: req.user.id, course_id: a.course_id, score: r.score }); if (up) r.difficulty_level = up.difficulty_level; } catch(e) {}
     res.json({ ...r, certificate_issued });
   } catch (err) {
     res.status(500).json({ error: err.message });
