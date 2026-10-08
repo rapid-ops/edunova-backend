@@ -165,7 +165,7 @@ const getSkillPassport = async (req, res) => {
     const [enrollments, comps, certs, quizAvg] = await Promise.all([
       pool.query(`SELECT c.title FROM lesson_progress lp JOIN courses c ON c.id=lp.course_id WHERE lp.student_id=$1 AND lp.watch_percent=100 GROUP BY c.title`, [student_id]),
       pool.query(`SELECT co.name FROM student_competencies sc JOIN competencies co ON co.id=sc.competency_id WHERE sc.student_id=$1`, [student_id]),
-      pool.query(`SELECT c.title,bc.issued_at FROM blockchain_certificates bc JOIN certificates c ON c.id=bc.certificate_id WHERE bc.student_id=$1`, [student_id]),
+      pool.query(`SELECT co.title,bc.issued_at FROM blockchain_certificates bc JOIN certificates c ON c.id=bc.certificate_id JOIN courses co ON co.id=c.course_id WHERE bc.student_id=$1`, [student_id]),
       pool.query(`SELECT ROUND(AVG(score),1) as avg FROM quiz_attempts WHERE student_id=$1`, [student_id]),
     ]);
     const passport = {
