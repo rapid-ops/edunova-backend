@@ -29,7 +29,7 @@ const generateQuiz = async (req, res) => {
 
 const generateCourse = async (req, res) => {
   try {
-    const { school_id, created_by, prompt, source_type = 'prompt', source_url, auto_create = false } = req.body;
+    const { school_id, prompt, source_type = 'prompt', source_url, auto_create = false } = req.body;
     let contentPrompt = prompt;
     if (source_type === 'youtube_url' && source_url) {
       const vidId = source_url.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1];
@@ -43,31 +43,30 @@ const generateCourse = async (req, res) => {
       contentPrompt = source_url.slice(0, 3000);
     }
     const sid = school_id || req.user.school_id;
-    const cby = created_by || req.user.id;
+    const tid = req.user.id;
     const gen = await pool.query(
       `INSERT INTO ai_course_generations (school_id,created_by,prompt,source_type,source_url,status) VALUES ($1,$2,$3,$4,$5,'processing') RETURNING *`,
-      [sid, cby, prompt, source_type, source_url]
+      [sid, tid, prompt, source_type, source_url]
     );
     const genRow = gen.rows[0];
     res.status(201).json({ generation: genRow, message: 'Generation started' });
     try {
-      const raw = await chat([{ role: 'user', content: `Generate a course outline in JSON for: "${contentPrompt}". Return ONLY valid JSON: {"title":"","description":"","modules":[{"title":"","lessons":[{"title":"","content":"","duration_minutes":15}]}]}. 3-5 modules, 3-5 lessons each.` }], null, 2000);
+      const raw = await chat([{ role: 'user', content: `Generate a course outline in JSON for: "${contentPrompt}". Return ONLY valid JSON: {"title":"","description":"","lessons":[{"title":"","content":"","duration_minutes":15}]}. 5-8 lessons.` }], null, 2000);
       const match = raw.match(/\{[\s\S]*\}/);
       if (!match) { await pool.query(`UPDATE ai_course_generations SET status='failed' WHERE id=$1`, [genRow.id]); return; }
       const outline = JSON.parse(match[0]);
       await pool.query(`UPDATE ai_course_generations SET outline=$1,status='done' WHERE id=$2`, [JSON.stringify(outline), genRow.id]);
-      if (auto_create && outline.modules) {
+      if (auto_create && outline.lessons) {
         const course = await pool.query(
-          `INSERT INTO courses (school_id,title,description,created_by) VALUES ($1,$2,$3,$4) RETURNING id`,
-          [sid, outline.title, outline.description, cby]
+          `INSERT INTO courses (school_id,teacher_id,title,description) VALUES ($1,$2,$3,$4) RETURNING id`,
+          [sid, tid, outline.title, outline.description]
         );
         const cid = course.rows[0].id;
-        for (const mod of outline.modules) {
-          const module = await pool.query(`INSERT INTO modules (course_id,title) VALUES ($1,$2) RETURNING id`, [cid, mod.title]);
-          const mid = module.rows[0].id;
-          for (const lesson of mod.lessons || []) {
-            await pool.query(`INSERT INTO lessons (module_id,title,content,duration_minutes) VALUES ($1,$2,$3,$4)`, [mid, lesson.title, lesson.content, lesson.duration_minutes || 15]);
-          }
+        for (const lesson of outline.lessons) {
+          await pool.query(
+            `INSERT INTO lessons (course_id,title,content,duration_minutes) VALUES ($1,$2,$3,$4)`,
+            [cid, lesson.title, lesson.content, lesson.duration_minutes || 15]
+          );
         }
       }
     } catch { await pool.query(`UPDATE ai_course_generations SET status='failed' WHERE id=$1`, [genRow.id]); }
@@ -78,15 +77,15 @@ const teacherCopilot = async (req, res) => {
   try {
     const { question, course_id } = req.body;
     if (!question) return res.status(400).json({ error: 'question required' });
-    const courses = await pool.query(`SELECT id,title FROM courses WHERE created_by=$1 LIMIT 10`, [req.user.id]);
-    let grades = { rows: [] };
+    const courses = await pool.query(`SELECT id,title FROM courses WHERE teacher_id=$1 LIMIT 10`, [req.user.id]);
+    let attempts = { rows: [] };
     if (course_id) {
-      grades = await pool.query(
-        `SELECT u.full_name,g.score FROM grades g JOIN users u ON u.id=g.student_id WHERE g.course_id=$1 ORDER BY g.score LIMIT 20`,
+      attempts = await pool.query(
+        `SELECT u.full_name,qa.score FROM quiz_attempts qa JOIN users u ON u.id=qa.student_id JOIN assessments a ON a.id=qa.assessment_id WHERE a.course_id=$1 ORDER BY qa.score LIMIT 20`,
         [course_id]
       );
     }
-    const context = `Teacher courses: ${courses.rows.map(c => c.title).join(', ') || 'none'}.\nGrades (lowest first): ${grades.rows.map(r => `${r.full_name}: ${r.score}`).join(', ') || 'no data'}.`;
+    const context = `Teacher courses: ${courses.rows.map(c => c.title).join(', ') || 'none'}.\nStudent scores (lowest first): ${attempts.rows.map(r => `${r.full_name}: ${r.score}`).join(', ') || 'no data'}.`;
     const reply = await chat(
       [{ role: 'user', content: question }],
       `You are an AI teaching assistant. Context:\n${context}\nAnswer directly and concisely.`,
@@ -104,21 +103,20 @@ const schoolAdminQuery = async (req, res) => {
     const q = question.toLowerCase();
     let dbResult = '';
     if (q.includes('not logged') || q.includes('inactive')) {
-      const days = parseInt(q.match(/(\d+)\s*day/)?.[1] || '7');
       const r = await pool.query(
-        `SELECT full_name,last_login_at FROM users WHERE school_id=$1 AND role='student' AND (last_login_at IS NULL OR last_login_at < NOW()-INTERVAL '${days} days') LIMIT 30`,
+        `SELECT full_name,created_at FROM users WHERE school_id=$1 AND role='student' LIMIT 30`,
         [school_id]
       );
-      dbResult = `Students inactive ${days}+ days: ${JSON.stringify(r.rows)}`;
+      dbResult = `Students: ${JSON.stringify(r.rows)}`;
     } else if (q.includes('result') || q.includes('submitted')) {
       const r = await pool.query(
-        `SELECT u.full_name FROM users u WHERE u.school_id=$1 AND u.role='teacher' AND u.id NOT IN (SELECT DISTINCT created_by FROM assessments WHERE school_id=$1 AND created_at > NOW()-INTERVAL '30 days') LIMIT 20`,
+        `SELECT u.full_name FROM users u WHERE u.school_id=$1 AND u.role='teacher' AND u.id NOT IN (SELECT DISTINCT teacher_id FROM courses WHERE school_id=$1) LIMIT 20`,
         [school_id]
       );
-      dbResult = `Teachers without recent submissions: ${JSON.stringify(r.rows)}`;
+      dbResult = `Teachers without courses: ${JSON.stringify(r.rows)}`;
     } else if (q.includes('performance') || q.includes('summary')) {
       const r = await pool.query(
-        `SELECT c.title,ROUND(AVG(g.score),1) as avg FROM grades g JOIN courses c ON c.id=g.course_id WHERE c.school_id=$1 GROUP BY c.title ORDER BY avg LIMIT 10`,
+        `SELECT c.title,ROUND(AVG(qa.score),1) as avg FROM quiz_attempts qa JOIN assessments a ON a.id=qa.assessment_id JOIN courses c ON c.id=a.course_id WHERE c.school_id=$1 GROUP BY c.title ORDER BY avg LIMIT 10`,
         [school_id]
       );
       dbResult = `Class performance: ${JSON.stringify(r.rows)}`;
@@ -139,10 +137,10 @@ const predictDropout = async (req, res) => {
   try {
     const school_id = req.body.school_id || req.user.school_id;
     const students = await pool.query(
-      `SELECT u.id,u.full_name,u.last_login_at,
-        (SELECT COUNT(*) FROM quiz_submissions qs WHERE qs.student_id=u.id) as quiz_count,
-        (SELECT ROUND(AVG(score),1) FROM quiz_submissions qs WHERE qs.student_id=u.id) as avg_score,
-        (SELECT COUNT(*) FROM assignment_submissions a WHERE a.student_id=u.id) as assignment_count
+      `SELECT u.id,u.full_name,u.created_at,
+        (SELECT COUNT(*) FROM quiz_attempts qa WHERE qa.student_id=u.id) as quiz_count,
+        (SELECT ROUND(AVG(score),1) FROM quiz_attempts qa WHERE qa.student_id=u.id) as avg_score,
+        (SELECT COUNT(*) FROM submissions s WHERE s.student_id=u.id) as submission_count
        FROM users u WHERE u.school_id=$1 AND u.role='student' LIMIT 50`,
       [school_id]
     );
@@ -153,8 +151,7 @@ const predictDropout = async (req, res) => {
     const predictions = match ? JSON.parse(match[0]) : [];
     for (const p of predictions) {
       await pool.query(
-        `INSERT INTO dropout_predictions (student_id,school_id,risk_level,risk_score,factors,predicted_at)
-         VALUES ($1,$2,$3,$4,$5,NOW())`,
+        `INSERT INTO dropout_predictions (student_id,school_id,risk_level,risk_score,factors,predicted_at) VALUES ($1,$2,$3,$4,$5,NOW())`,
         [p.student_id, school_id, p.risk_level, p.risk_score, JSON.stringify({ reason: p.reason })]
       );
     }
@@ -165,15 +162,15 @@ const predictDropout = async (req, res) => {
 const getSkillPassport = async (req, res) => {
   try {
     const { student_id } = req.params;
-    const [courses, comps, certs, quizAvg] = await Promise.all([
-      pool.query(`SELECT c.title,e.completed_at FROM enrollments e JOIN courses c ON c.id=e.course_id WHERE e.student_id=$1 AND e.completed_at IS NOT NULL`, [student_id]),
+    const [enrollments, comps, certs, quizAvg] = await Promise.all([
+      pool.query(`SELECT c.title FROM lesson_progress lp JOIN courses c ON c.id=lp.course_id WHERE lp.student_id=$1 AND lp.watch_percent=100 GROUP BY c.title`, [student_id]),
       pool.query(`SELECT co.name FROM student_competencies sc JOIN competencies co ON co.id=sc.competency_id WHERE sc.student_id=$1`, [student_id]),
       pool.query(`SELECT title,issued_at FROM blockchain_certificates WHERE student_id=$1`, [student_id]),
-      pool.query(`SELECT ROUND(AVG(score),1) as avg FROM quiz_submissions WHERE student_id=$1`, [student_id]),
+      pool.query(`SELECT ROUND(AVG(score),1) as avg FROM quiz_attempts WHERE student_id=$1`, [student_id]),
     ]);
     const passport = {
       student_id: Number(student_id),
-      courses_completed: courses.rows,
+      courses_completed: enrollments.rows,
       competencies: comps.rows.map(r => r.name),
       certificates: certs.rows,
       avg_quiz_score: quizAvg.rows[0]?.avg || 0,
@@ -181,9 +178,7 @@ const getSkillPassport = async (req, res) => {
     };
     const passportId = `sp-${student_id}-${Date.now()}`;
     await pool.query(
-      `INSERT INTO skill_passport (student_id,passport_id,skills,verified_at)
-       VALUES ($1,$2,$3,NOW())
-       ON CONFLICT (student_id) DO UPDATE SET skills=$3,verified_at=NOW()`,
+      `INSERT INTO skill_passport (student_id,passport_id,skills,verified_at) VALUES ($1,$2,$3,NOW()) ON CONFLICT (student_id) DO UPDATE SET skills=$3,verified_at=NOW()`,
       [student_id, passportId, JSON.stringify(passport)]
     );
     res.json({ passport });
@@ -202,8 +197,7 @@ const careerMatch = async (req, res) => {
     const parsed = match ? JSON.parse(match[0]) : { careers: [] };
     for (const c of parsed.careers) {
       await pool.query(
-        `INSERT INTO career_matches (student_id,job_title,match_score,matched_competencies,created_at)
-         VALUES ($1,$2,$3,$4,NOW())`,
+        `INSERT INTO career_matches (student_id,job_title,match_score,matched_competencies,created_at) VALUES ($1,$2,$3,$4,NOW())`,
         [student_id, c.title, c.match_score, JSON.stringify({ required_skills: c.required_skills, skill_gaps: c.skill_gaps })]
       );
     }
@@ -217,14 +211,12 @@ const updateLearningTwin = async (req, res) => {
     if (!student_id) return res.status(400).json({ error: 'student_id required' });
     const existing = await pool.query(`SELECT * FROM learning_twins WHERE student_id=$1`, [student_id]);
     const current = existing.rows[0] || {};
-    const prompt = `Update this student learning twin. Event: ${event_type}, Data: ${JSON.stringify(data)}, Current: ${JSON.stringify({ speed: current.learning_speed, study_time: current.best_study_time, mistakes: current.common_mistakes })}. Return ONLY valid JSON: {"learning_speed":"fast|medium|slow","best_study_time":"morning|afternoon|evening","common_mistakes":[""],"strengths":[],"weaknesses":[]}`;
+    const prompt = `Update this student learning twin. Event: ${event_type}, Data: ${JSON.stringify(data)}, Current: ${JSON.stringify({ speed: current.learning_speed, study_time: current.best_study_time, mistakes: current.common_mistakes })}. Return ONLY valid JSON: {"learning_speed":"fast|medium|slow","best_study_time":"morning|afternoon|evening","common_mistakes":[]}`;
     const raw = await chat([{ role: 'user', content: prompt }], null, 600);
     const match = raw.match(/\{[\s\S]*\}/);
     const updated = match ? JSON.parse(match[0]) : {};
     await pool.query(
-      `INSERT INTO learning_twins (student_id,learning_speed,best_study_time,common_mistakes,last_analyzed)
-       VALUES ($1,$2,$3,$4,NOW())
-       ON CONFLICT (student_id) DO UPDATE SET learning_speed=$2,best_study_time=$3,common_mistakes=$4,last_analyzed=NOW()`,
+      `INSERT INTO learning_twins (student_id,learning_speed,best_study_time,common_mistakes,last_analyzed) VALUES ($1,$2,$3,$4,NOW()) ON CONFLICT (student_id) DO UPDATE SET learning_speed=$2,best_study_time=$3,common_mistakes=$4,last_analyzed=NOW()`,
       [student_id, updated.learning_speed || 'medium', updated.best_study_time || 'morning', JSON.stringify(updated.common_mistakes || [])]
     );
     res.json({ twin: updated });
