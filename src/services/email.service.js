@@ -68,7 +68,7 @@ const templates = {
     subject: `Account Suspended`,
     html: wrap(`<h2>Account Suspended</h2><p>${d.reason || 'Your account has been suspended.'}</p>`, d.school_name),
   }),
-}
+};
 
 async function sendEmail(to, template, data) {
   if (!RESEND_KEY || !to) return;
