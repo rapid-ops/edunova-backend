@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const { createAssessment, getAssessmentsByCourse, deleteAssessment } = require('../models/assessment.model');
+const { createAssessment, getAssessmentsByCourse, deleteAssessment, getMyAssessments } = require('../models/assessment.model');
 
 const validId = (v) => /^\d+$/.test(String(v));
 const sameSchool = (user, schoolId) =>
@@ -88,4 +88,11 @@ const remove = async (req, res) => {
   }
 };
 
-module.exports = { create, list, get, remove };
+
+const my = async (req, res) => {
+  try {
+    const assessments = await getMyAssessments(req.user.id);
+    res.json({ assessments });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+module.exports = { create, list, get, remove, my };

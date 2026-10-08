@@ -26,4 +26,17 @@ const deleteAssessment = async (id) => {
   await pool.query(`DELETE FROM assessments WHERE id=$1`, [id]);
 };
 
-module.exports = { createAssessment, getAssessmentsByCourse, getAssessmentById, deleteAssessment };
+
+const getMyAssessments = async (student_id) => {
+  const result = await pool.query(
+    `SELECT a.*, c.title AS course_title
+     FROM assessments a
+     JOIN courses c ON c.id = a.course_id
+     JOIN enrollments e ON e.course_id = a.course_id
+     WHERE e.student_id = $1 AND a.type != 'quiz'
+     ORDER BY a.due_date NULLS LAST, a.created_at DESC`,
+    [student_id]
+  );
+  return result.rows;
+};
+module.exports = { createAssessment, getAssessmentsByCourse, getAssessmentById, deleteAssessment, getMyAssessments };
