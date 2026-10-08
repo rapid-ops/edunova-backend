@@ -1,10 +1,8 @@
 const router = require('express').Router();
 const { protect } = require('../middleware/auth.middleware');
-const { createTask, listTasks, submit, review, listSubmissions, studentSubmissions } = require('../controllers/proofofwork.controller');
-router.post('/tasks', protect, createTask);
-router.get('/tasks/:course_id', protect, listTasks);
-router.post('/submit', protect, submit);
-router.put('/review', protect, review);
-router.get('/submissions/:task_id', protect, listSubmissions);
-router.get('/student/:student_id', protect, studentSubmissions);
+const { create, submitEvidence, verify, listByCourse } = require('../controllers/proofofwork.controller');
+router.post('/', protect, create);
+router.post('/:id/submit', protect, submitEvidence);
+router.put('/submissions/:id/verify', protect, verify);
+router.get('/course/:course_id', protect, listByCourse);
 module.exports = router;
