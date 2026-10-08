@@ -39,4 +39,5 @@ app.use('/api/schools', require('./routes/schooltheme.routes'));
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 5000;
+app.use("/api/ai", require("./routes/ai.routes"));
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
