@@ -1,3 +1,4 @@
+const { track } = require('../middleware/analytics.middleware');
 const router = require('express').Router();
 const { login } = require('../controllers/auth.controller');
 const { register, forgotPassword, adminResetPassword } = require('../controllers/authsecure.controller');
@@ -9,7 +10,7 @@ const isSelf = (req) => Number(req.user.id) === Number(req.params.id);
 
 router.post('/register', register);
 const { loginLimiter } = require('../middleware/ratelimit.middleware');
-router.post('/login', loginLimiter, login);
+router.post('/login', loginLimiter, track('login'), login);
 router.post('/forgot-password', forgotPassword);
 router.post('/admin-reset/:user_id', protect, authorize('school_admin', 'super_admin'), adminResetPassword);
 

@@ -1,3 +1,4 @@
+const learningTwinModel = require('../models/learningtwin.model');
 const pool = require('../config/db');
 const { upsertProgress, getCourseProgress, getCourseCompletionPercent } = require('../models/progress.model');
 const { issueCertificate } = require('../models/certificate.model');
@@ -30,6 +31,7 @@ const updateProgress = async (req, res) => {
       certificate = await issueCertificate({ student_id, course_id: lesson.course_id, school_id: lesson.school_id });
     }
     res.json({ progress, course_completion_percent: percent, certificate });
+  learningTwinModel.analyze(req.user.id).catch(() => {});
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
