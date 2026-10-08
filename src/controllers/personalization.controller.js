@@ -4,7 +4,7 @@ const recommend = async (req, res) => {
   try {
     const { student_id } = req.body;
     if (!student_id) return res.status(400).json({ error: 'student_id required' });
-    const enrolled = await pool.query(`SELECT course_id FROM course_enrollments WHERE student_id=$1`, [student_id]);
+    const enrolled = await pool.query(`SELECT course_id FROM enrollments WHERE student_id=$1`, [student_id]);
     const courseIds = enrolled.rows.map(r => r.course_id);
     if (!courseIds.length) return res.json({ recommendations: [] });
     const profiles = await pool.query(
