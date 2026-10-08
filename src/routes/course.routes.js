@@ -18,6 +18,15 @@ router.get('/public', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.get('/public/school/:school_id', async (req, res) => {
+  try {
+    const { rows } = await require('../config/db').query(
+      `SELECT id, title, description, thumbnail_url FROM courses WHERE school_id=$1 AND status='published'`,
+      [req.params.school_id]
+    );
+    res.json({ courses: rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 router.get('/school/:school_id', protect, list);
 router.get('/:id', protect, get);
 router.put('/:id', protect, authorize('super_admin','school_admin','teacher'), update);
