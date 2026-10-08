@@ -70,7 +70,7 @@ const generateCourse = async (req, res) => {
           }
         }
       }
-    } catch (e) { await pool.query(`UPDATE ai_course_generations SET status='failed' WHERE id=$1`, [genRow.id]); }
+    } catch { await pool.query(`UPDATE ai_course_generations SET status='failed' WHERE id=$1`, [genRow.id]); }
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
@@ -78,8 +78,7 @@ const teacherCopilot = async (req, res) => {
   try {
     const { question, course_id } = req.body;
     if (!question) return res.status(400).json({ error: 'question required' });
-    const tid = req.user.id;
-    const courses = await pool.query(`SELECT id,title FROM courses WHERE created_by=$1 LIMIT 10`, [tid]);
+    const courses = await pool.query(`SELECT id,title FROM courses WHERE created_by=$1 LIMIT 10`, [req.user.id]);
     let grades = { rows: [] };
     if (course_id) {
       grades = await pool.query(
@@ -87,7 +86,7 @@ const teacherCopilot = async (req, res) => {
         [course_id]
       );
     }
-    const context = `Teacher courses: ${courses.rows.map(c => c.title).join(', ') || 'none'}.\nRecent grades (lowest first): ${grades.rows.map(r => `${r.full_name}: ${r.score}`).join(', ') || 'no data'}.`;
+    const context = `Teacher courses: ${courses.rows.map(c => c.title).join(', ') || 'none'}.\nGrades (lowest first): ${grades.rows.map(r => `${r.full_name}: ${r.score}`).join(', ') || 'no data'}.`;
     const reply = await chat(
       [{ role: 'user', content: question }],
       `You are an AI teaching assistant. Context:\n${context}\nAnswer directly and concisely.`,
@@ -154,10 +153,9 @@ const predictDropout = async (req, res) => {
     const predictions = match ? JSON.parse(match[0]) : [];
     for (const p of predictions) {
       await pool.query(
-        `INSERT INTO dropout_predictions (student_id,school_id,risk_level,risk_score,reason,predicted_at)
-         VALUES ($1,$2,$3,$4,$5,NOW())
-         ON CONFLICT (student_id) DO UPDATE SET risk_level=$3,risk_score=$4,reason=$5,predicted_at=NOW()`,
-        [p.student_id, school_id, p.risk_level, p.risk_score, p.reason]
+        `INSERT INTO dropout_predictions (student_id,school_id,risk_level,risk_score,factors,predicted_at)
+         VALUES ($1,$2,$3,$4,$5,NOW())`,
+        [p.student_id, school_id, p.risk_level, p.risk_score, JSON.stringify({ reason: p.reason })]
       );
     }
     res.json({ predictions });
@@ -181,9 +179,12 @@ const getSkillPassport = async (req, res) => {
       avg_quiz_score: quizAvg.rows[0]?.avg || 0,
       generated_at: new Date().toISOString(),
     };
+    const passportId = `sp-${student_id}-${Date.now()}`;
     await pool.query(
-      `INSERT INTO skill_passport (student_id,data,updated_at) VALUES ($1,$2,NOW()) ON CONFLICT (student_id) DO UPDATE SET data=$2,updated_at=NOW()`,
-      [student_id, JSON.stringify(passport)]
+      `INSERT INTO skill_passport (student_id,passport_id,skills,verified_at)
+       VALUES ($1,$2,$3,NOW())
+       ON CONFLICT (student_id) DO UPDATE SET skills=$3,verified_at=NOW()`,
+      [student_id, passportId, JSON.stringify(passport)]
     );
     res.json({ passport });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -193,16 +194,19 @@ const careerMatch = async (req, res) => {
   try {
     const { student_id } = req.body;
     if (!student_id) return res.status(400).json({ error: 'student_id required' });
-    const passport = await pool.query(`SELECT data FROM skill_passport WHERE student_id=$1`, [student_id]);
-    const passportData = passport.rows[0]?.data || {};
+    const passportRow = await pool.query(`SELECT skills FROM skill_passport WHERE student_id=$1`, [student_id]);
+    const passportData = passportRow.rows[0]?.skills || {};
     const prompt = `Based on this skill passport, suggest top 3 career paths. Return ONLY valid JSON: {"careers":[{"title":"","match_score":0.9,"required_skills":[],"skill_gaps":[]}]}\n\nPassport: ${JSON.stringify(passportData)}`;
     const raw = await chat([{ role: 'user', content: prompt }], null, 1000);
     const match = raw.match(/\{[\s\S]*\}/);
     const parsed = match ? JSON.parse(match[0]) : { careers: [] };
-    await pool.query(
-      `INSERT INTO career_matches (student_id,matches,created_at) VALUES ($1,$2,NOW()) ON CONFLICT (student_id) DO UPDATE SET matches=$2,created_at=NOW()`,
-      [student_id, JSON.stringify(parsed.careers)]
-    );
+    for (const c of parsed.careers) {
+      await pool.query(
+        `INSERT INTO career_matches (student_id,job_title,match_score,matched_competencies,created_at)
+         VALUES ($1,$2,$3,$4,NOW())`,
+        [student_id, c.title, c.match_score, JSON.stringify({ required_skills: c.required_skills, skill_gaps: c.skill_gaps })]
+      );
+    }
     res.json({ careers: parsed.careers });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
@@ -212,14 +216,16 @@ const updateLearningTwin = async (req, res) => {
     const { student_id, event_type, data } = req.body;
     if (!student_id) return res.status(400).json({ error: 'student_id required' });
     const existing = await pool.query(`SELECT * FROM learning_twins WHERE student_id=$1`, [student_id]);
-    const current = existing.rows[0]?.profile || {};
-    const prompt = `Update this student learning twin. Event: ${event_type}, Data: ${JSON.stringify(data)}, Current: ${JSON.stringify(current)}. Return ONLY valid JSON: {"strengths":[],"weaknesses":[],"preferred_content_type":"video","pace":"medium","engagement_score":0.8}`;
+    const current = existing.rows[0] || {};
+    const prompt = `Update this student learning twin. Event: ${event_type}, Data: ${JSON.stringify(data)}, Current: ${JSON.stringify({ speed: current.learning_speed, study_time: current.best_study_time, mistakes: current.common_mistakes })}. Return ONLY valid JSON: {"learning_speed":"fast|medium|slow","best_study_time":"morning|afternoon|evening","common_mistakes":[""],"strengths":[],"weaknesses":[]}`;
     const raw = await chat([{ role: 'user', content: prompt }], null, 600);
     const match = raw.match(/\{[\s\S]*\}/);
-    const updated = match ? JSON.parse(match[0]) : current;
+    const updated = match ? JSON.parse(match[0]) : {};
     await pool.query(
-      `INSERT INTO learning_twins (student_id,profile,updated_at) VALUES ($1,$2,NOW()) ON CONFLICT (student_id) DO UPDATE SET profile=$2,updated_at=NOW()`,
-      [student_id, JSON.stringify(updated)]
+      `INSERT INTO learning_twins (student_id,learning_speed,best_study_time,common_mistakes,last_analyzed)
+       VALUES ($1,$2,$3,$4,NOW())
+       ON CONFLICT (student_id) DO UPDATE SET learning_speed=$2,best_study_time=$3,common_mistakes=$4,last_analyzed=NOW()`,
+      [student_id, updated.learning_speed || 'medium', updated.best_study_time || 'morning', JSON.stringify(updated.common_mistakes || [])]
     );
     res.json({ twin: updated });
   } catch (err) { res.status(500).json({ error: err.message }); }
