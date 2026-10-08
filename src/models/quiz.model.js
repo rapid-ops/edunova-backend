@@ -7,8 +7,15 @@ const norm = (v) => String(v === undefined || v === null ? '' : v).trim().toLowe
 
 const isCorrect = (q, given) => {
   if (norm(given) === '') return false;
-  if (q.type === 'short_answer') {
+  if (q.type === 'short_answer' || q.type === 'fill_blank') {
     return String(q.correct_answer || '').split('|').map(norm).filter(Boolean).includes(norm(given));
+  }
+  if (q.type === 'matching') {
+    try {
+      const correct = typeof q.correct_answer === 'string' ? JSON.parse(q.correct_answer) : q.correct_answer;
+      const givenObj = typeof given === 'string' ? JSON.parse(given) : given;
+      return JSON.stringify(correct) === JSON.stringify(givenObj);
+    } catch { return false; }
   }
   return norm(given) === norm(q.correct_answer);
 };
@@ -34,8 +41,8 @@ const getAssessment = async (id) => {
 const createQuiz = async (course_id, s) => {
   const r = await pool.query(
     `INSERT INTO assessments (course_id, title, type, instructions, due_date, total_marks,
-       time_limit_minutes, max_attempts, pass_percent, randomize_questions, awards_certificate)
-     VALUES ($1,$2,'quiz',$3,$4,100,$5,$6,$7,$8,$9) RETURNING *`,
+       time_limit_minutes, max_attempts, pass_percent, randomize_questions, awards_certificate, scheduled_at)
+     VALUES ($1,$2,'quiz',$3,$4,100,$5,$6,$7,$8,$9,$10) RETURNING *`,
     [course_id, s.title, s.instructions, s.due_date, s.time_limit_minutes, s.max_attempts,
      s.pass_percent, s.randomize_questions, s.awards_certificate]
   );
@@ -45,7 +52,7 @@ const createQuiz = async (course_id, s) => {
 const updateSettings = async (id, s) => {
   const r = await pool.query(
     `UPDATE assessments SET title=$2, instructions=$3, due_date=$4, time_limit_minutes=$5,
-       max_attempts=$6, pass_percent=$7, randomize_questions=$8, awards_certificate=$9
+       max_attempts=$6, pass_percent=$7, randomize_questions=$8, awards_certificate=$9, scheduled_at=$10
      WHERE id=$1 RETURNING *`,
     [id, s.title, s.instructions, s.due_date, s.time_limit_minutes, s.max_attempts,
      s.pass_percent, s.randomize_questions, s.awards_certificate]
@@ -255,8 +262,16 @@ const submitQuizAttempt = async (a, student_id, answers) => {
     let total = 0;
     qs.rows.forEach((q) => {
       total += q.marks;
-      if (!late && isCorrect(q, answers[q.id])) score += q.marks;
+      if (!late) {
+        if (isCorrect(q, answers[q.id])) {
+          score += q.marks;
+        } else if (['mcq','true_false'].includes(q.type) &&
+                   norm(answers[q.id]) !== '' && a.negative_marking) {
+          score -= q.marks * Number(a.negative_marking);
+        }
+      }
     });
+    score = Math.max(0, score);
     const percent = total > 0 ? (score / total) * 100 : 0;
     const passMark = a.pass_percent === null || a.pass_percent === undefined ? 50 : a.pass_percent;
     const passed = !late && percent >= passMark;

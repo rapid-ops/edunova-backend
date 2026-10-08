@@ -76,7 +76,8 @@ const gradeSubmission = async (req, res) => {
        FROM submissions s
        JOIN assessments a ON a.id=s.assessment_id
        JOIN courses c ON c.id=a.course_id
-       WHERE s.id=$1`, [id]
+       WHERE s.id=$1`,
+      [id]
     );
     const sub = sr.rows[0];
     if (!sub) return res.status(404).json({ error: 'Submission not found' });
@@ -104,8 +105,10 @@ const gradeSubmission = async (req, res) => {
       const st = ur.rows[0];
       if (st?.email) {
         await sendEmail(st.email, 'result', {
-          student_name: st.full_name, assessment_title: sub.assessment_title,
-          score: sc, total: max, school_name: schr.rows[0]?.name || 'Edunova',
+          student_name: st.full_name,
+          assessment_title: sub.assessment_title,
+          score: sc, total: max,
+          school_name: schr.rows[0]?.name || 'Edunova',
         });
       }
     } catch (e) { console.error('Email error:', e.message); }

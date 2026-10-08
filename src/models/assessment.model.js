@@ -1,10 +1,10 @@
 const pool = require('../config/db');
 
-const createAssessment = async ({ course_id, title, type, due_date, total_marks }) => {
+const createAssessment = async ({ course_id, title, type, due_date, total_marks, rubric }) => {
   const result = await pool.query(
-    `INSERT INTO assessments (course_id, title, type, due_date, total_marks)
-     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [course_id, title, type, due_date, total_marks]
+    `INSERT INTO assessments (course_id, title, type, due_date, total_marks, rubric)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+    [course_id, title, type, due_date, total_marks, rubric ? JSON.stringify(rubric) : null]
   );
   return result.rows[0];
 };

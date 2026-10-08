@@ -23,7 +23,7 @@ const loadWithSchool = async (id) => {
 
 const create = async (req, res) => {
   try {
-    const { course_id, title, type, due_date, total_marks } = req.body;
+    const { course_id, title, type, due_date, total_marks, rubric } = req.body;
     if (!validId(course_id) || !title || !String(title).trim() || !TYPES.includes(type)) {
       return res.status(400).json({ error: 'course_id, title and a valid type required' });
     }
@@ -41,6 +41,7 @@ const create = async (req, res) => {
       type,
       due_date: due_date || null,
       total_marks: marks,
+      rubric: Array.isArray(rubric) ? rubric : null,
     });
     res.status(201).json({ assessment });
   } catch (err) {

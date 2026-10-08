@@ -23,6 +23,7 @@ const publicQuiz = (a) => ({
   pass_percent: a.pass_percent === null || a.pass_percent === undefined ? 50 : a.pass_percent,
   randomize_questions: !!a.randomize_questions,
   awards_certificate: !!a.awards_certificate,
+  scheduled_at: a.scheduled_at || null,
 });
 
 const intOrNull = (v) => (v === undefined || v === null || v === '' ? null : Number(v));
@@ -39,6 +40,8 @@ const parseSettings = (b) => {
   const ppRaw = intOrNull(b.pass_percent);
   const pp = ppRaw === null ? 50 : ppRaw;
   if (!Number.isInteger(pp) || pp < 1 || pp > 100) return { error: 'Pass mark must be 1 to 100 percent' };
+  if (b.scheduled_at && Number.isNaN(Date.parse(b.scheduled_at)))
+    return { error: 'Invalid scheduled_at' };
   return {
     title: title.slice(0, 255),
     instructions: b.instructions ? String(b.instructions).slice(0, 5000) : null,
@@ -48,6 +51,7 @@ const parseSettings = (b) => {
     pass_percent: pp,
     randomize_questions: b.randomize_questions === true,
     awards_certificate: b.awards_certificate === true,
+    scheduled_at: b.scheduled_at || null,
   };
 };
 
@@ -139,6 +143,8 @@ const start = async (req, res) => {
   try {
     const a = await loadQuiz(req, res);
     if (!a) return;
+    if (a.scheduled_at && new Date() < new Date(a.scheduled_at))
+      return res.status(400).json({ error: 'This quiz has not started yet', scheduled_at: a.scheduled_at });
     const r = await m.startAttempt(a, req.user.id);
     if (r.error) return res.status(r.code || 400).json({ error: r.error });
 
@@ -243,7 +249,8 @@ const addQuestion = async (req, res) => {
     const text = String(question || '').trim();
     if (!text) return res.status(400).json({ error: 'Question text required' });
     const qtype = type || 'mcq';
-    if (!['mcq', 'true_false', 'short_answer'].includes(qtype)) return res.status(400).json({ error: 'Invalid question type' });
+    if (!['mcq', 'true_false', 'short_answer', 'matching', 'fill_blank'].includes(qtype))
+      return res.status(400).json({ error: 'Invalid question type' });
     const mk = marks === undefined || marks === null || marks === '' ? 1 : Number(marks);
     if (!Number.isInteger(mk) || mk < 1 || mk > 100) return res.status(400).json({ error: 'Marks must be 1 to 100' });
 
@@ -260,6 +267,17 @@ const addQuestion = async (req, res) => {
       const t = answer.toLowerCase();
       if (t !== 'true' && t !== 'false') return res.status(400).json({ error: 'Correct answer must be True or False' });
       answer = t === 'true' ? 'True' : 'False';
+    } else if (qtype === 'matching') {
+      let pairs;
+      try { pairs = typeof options === 'string' ? JSON.parse(options) : options; } catch { pairs = null; }
+      if (!Array.isArray(pairs) || pairs.length < 2)
+        return res.status(400).json({ error: 'matching requires at least 2 {left,right} pairs in options' });
+      if (!pairs.every(p => p && typeof p.left === 'string' && typeof p.right === 'string'))
+        return res.status(400).json({ error: 'Each matching option must have left and right strings' });
+      opts = pairs;
+      answer = JSON.stringify(pairs);
+    } else if (qtype === 'fill_blank') {
+      if (!answer) return res.status(400).json({ error: 'correct_answer required (pipe-separated acceptable answers)' });
     }
 
     const total = await m.getTotalMarks(a.id);
