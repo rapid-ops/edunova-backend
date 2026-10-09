@@ -36,6 +36,7 @@ app.use('/api/api-keys', require('./routes/apikey.routes'));
 app.use('/api/schools', require('./routes/school.routes'));
 app.use('/api/schools', require('./routes/schooltheme.routes'));
 
+app.use('/api/quizzes', require('./routes/quiz.routes'));
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 5000;
