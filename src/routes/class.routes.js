@@ -74,3 +74,17 @@ router.delete('/:id', protect, admin, async (req, res) => {
 });
 
 module.exports = router;
+
+// Get students enrolled in a class (used by bulk attendance)
+router.get('/:id/students', protect, async (req, res) => {
+  try {
+    const cls = await getClass(req.params.id);
+    if (!cls) return res.status(404).json({ error: 'Class not found' });
+    if (!sameSchool(req.user, cls.school_id)) return res.status(403).json({ error: 'Access denied' });
+    const result = await pool.query(
+      `SELECT u.id, u.full_name FROM class_enrollments ce
+       JOIN users u ON u.id=ce.student_id
+       WHERE ce.class_id=$1 ORDER BY u.full_name`, [cls.id]);
+    res.json({ students: result.rows });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});

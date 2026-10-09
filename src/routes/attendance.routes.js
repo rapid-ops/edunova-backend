@@ -1,9 +1,11 @@
 const router = require('express').Router();
-const { mark, byClass, byStudent } = require('../controllers/attendance.controller');
+const { mark, byClass, byStudent, bulkMark, analytics } = require('../controllers/attendance.controller');
 const { protect, authorize } = require('../middleware/auth.middleware');
-
-router.post('/', protect, authorize('super_admin','school_admin','teacher'), mark);
+const STAFF = authorize('super_admin','school_admin','teacher');
+const ADMIN = authorize('super_admin','school_admin');
+router.post('/', protect, STAFF, mark);
+router.post('/bulk', protect, STAFF, bulkMark);
+router.get('/analytics/:school_id', protect, ADMIN, analytics);
 router.get('/class/:class_id', protect, byClass);
 router.get('/student/:student_id', protect, byStudent);
-
 module.exports = router;
