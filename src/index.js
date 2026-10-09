@@ -8,7 +8,7 @@ app.use(express.json());
 const routes = [
   'accreditation','adaptive','aicourse','aitutor','analytics','announcement',
   'apikey','assessment','assignment','attendance','auditlog','auth','automation',
-  'b2bticket','batch','blockchain','career','certificate','class','classsession',
+  'b2bticket','batch','blockchain','calendar','career','certificate','class','classsession',
   'competency','contact','coupon','course','courseassignment','courseevolution',
   'curriculum','customrole','department','discussion','dropout','enrollment',
   'fee','gradebook','import','learningpath','learningtwin','lesson','message',
@@ -48,5 +48,6 @@ app.use('/api/adaptive-learning', require('./routes/adaptive.routes'));
 app.use('/api/dropout', require('./routes/dropout.routes'));
 app.use('/api/competencies', require('./routes/competency.routes'));
 app.use('/api/peer-reviews', require('./routes/peerreview.routes'));
+app.use('/api/school-admin', require('./routes/promote.routes'));
 app.use('/api/proof-of-work', require('./routes/proofofwork.routes'));
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
