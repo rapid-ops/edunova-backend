@@ -117,3 +117,24 @@ router.delete('/:id', protect, authorize('super_admin','school_admin'), async (r
 });
 
 module.exports = router;
+
+// Get timetable for a student (via their class enrollment)
+router.get('/student/:student_id', protect, async (req, res) => {
+  try {
+    const { student_id } = req.params;
+    if (!validId(student_id)) return res.status(404).json({ error: 'Student not found' });
+    const st = await getUser(student_id);
+    if (!st) return res.status(404).json({ error: 'Student not found' });
+    if (!sameSchool(req.user, st.school_id)) return res.status(403).json({ error: 'Access denied' });
+    const ceRes = await pool.query(
+      `SELECT class_id FROM class_enrollments WHERE student_id=$1 LIMIT 1`, [student_id]);
+    if (!ceRes.rows[0]) return res.json({ timetable: [] });
+    const class_id = ceRes.rows[0].class_id;
+    const result = await pool.query(
+      `SELECT t.*, c.title as course_title, u.full_name as teacher_name
+       FROM timetable t JOIN courses c ON t.course_id=c.id
+       LEFT JOIN users u ON t.teacher_id=u.id
+       WHERE t.class_id=$1 ${ORDER}`, [class_id]);
+    res.json({ timetable: result.rows });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
