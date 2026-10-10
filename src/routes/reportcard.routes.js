@@ -101,7 +101,7 @@ router.post('/generate', protect, async (req, res) => {
         `SELECT u.full_name, s.name as school_name, s.address as school_address,
                 c.name as class_name
          FROM users u JOIN schools s ON s.id=$2
-         LEFT JOIN class_enrollments ce ON ce.student_id=u.id
+         LEFT JOIN student_classes ce ON ce.student_id=u.id
          LEFT JOIN classes c ON c.id=ce.class_id
          WHERE u.id=$1 LIMIT 1`, [student_id, school_id]),
       pool.query(

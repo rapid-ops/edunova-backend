@@ -79,7 +79,7 @@ router.get('/:id/students', protect, async (req, res) => {
   try {
     const cls = await getClass(req.params.id);
     const result = await pool.query(
-      `SELECT u.id, u.full_name FROM class_enrollments ce
+      `SELECT u.id, u.full_name FROM student_classes ce
        JOIN users u ON u.id=ce.student_id
        WHERE ce.class_id=$1 ORDER BY u.full_name`, [cls.id]);
     res.json({ students: result.rows });
@@ -95,7 +95,7 @@ router.get('/:id/students', protect, async (req, res) => {
     if (!cls) return res.status(404).json({ error: 'Class not found' });
     if (!sameSchool(req.user, cls.school_id)) return res.status(403).json({ error: 'Access denied' });
     const result = await pool.query(
-      `SELECT u.id, u.full_name FROM class_enrollments ce
+      `SELECT u.id, u.full_name FROM student_classes ce
        JOIN users u ON u.id=ce.student_id
        WHERE ce.class_id=$1 ORDER BY u.full_name`, [cls.id]);
     res.json({ students: result.rows });

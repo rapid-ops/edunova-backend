@@ -13,7 +13,7 @@ router.get('/promote/preview', protect, ADMIN, async (req, res) => {
     if (!cls) return res.status(404).json({ error: 'Class not found' });
     if (!sameSchool(req.user, cls.school_id)) return res.status(403).json({ error: 'Access denied' });
     const r = await pool.query(
-      `SELECT u.id, u.full_name, u.email FROM class_enrollments ce
+      `SELECT u.id, u.full_name, u.email FROM student_classes ce
        JOIN users u ON u.id=ce.student_id WHERE ce.class_id=$1 ORDER BY u.full_name`,
       [cls.id]);
     res.json({ students: r.rows, class: cls });
@@ -33,7 +33,7 @@ router.post('/promote', protect, ADMIN, async (req, res) => {
     if (!sameSchool(req.user, cls.school_id) || Number(cls.school_id) !== Number(newCls.school_id))
       return res.status(403).json({ error: 'Access denied' });
     const result = await pool.query(
-      `UPDATE class_enrollments SET class_id=$1 WHERE class_id=$2 RETURNING student_id`,
+      `UPDATE student_classes SET class_id=$1 WHERE class_id=$2 RETURNING student_id`,
       [newCls.id, cls.id]);
     res.json({ promoted: result.rowCount, from: cls, to: newCls });
   } catch (err) { res.status(500).json({ error: err.message }); }

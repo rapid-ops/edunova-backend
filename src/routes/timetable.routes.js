@@ -127,7 +127,7 @@ router.get('/student/:student_id', protect, async (req, res) => {
     if (!st) return res.status(404).json({ error: 'Student not found' });
     if (!sameSchool(req.user, st.school_id)) return res.status(403).json({ error: 'Access denied' });
     const ceRes = await pool.query(
-      `SELECT class_id FROM class_enrollments WHERE student_id=$1 LIMIT 1`, [student_id]);
+      `SELECT class_id FROM student_classes WHERE student_id=$1 LIMIT 1`, [student_id]);
     if (!ceRes.rows[0]) return res.json({ timetable: [] });
     const class_id = ceRes.rows[0].class_id;
     const result = await pool.query(
@@ -148,7 +148,7 @@ router.get('/student/:student_id', protect, async (req, res) => {
     if (!st) return res.status(404).json({ error: 'Student not found' });
     if (!sameSchool(req.user, st.school_id)) return res.status(403).json({ error: 'Access denied' });
     const ceRes = await pool.query(
-      `SELECT class_id FROM class_enrollments WHERE student_id=$1 LIMIT 1`, [student_id]);
+      `SELECT class_id FROM student_classes WHERE student_id=$1 LIMIT 1`, [student_id]);
     if (!ceRes.rows[0]) return res.json({ timetable: [] });
     const class_id = ceRes.rows[0].class_id;
     const result = await pool.query(
