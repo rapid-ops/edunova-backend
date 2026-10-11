@@ -12,6 +12,8 @@ const create = async (req, res) => {
       return res.status(400).json({ error: 'title, start_date and end_date required' });
     if (type && !TYPES.includes(type)) return res.status(400).json({ error: 'type must be term, holiday or exam' });
     if (color && !COLORS.test(color)) return res.status(400).json({ error: 'color must be a hex code' });
+    if (Number.isNaN(Date.parse(start_date)) || Number.isNaN(Date.parse(end_date))) return res.status(400).json({ error: 'Invalid date' });
+    if (new Date(end_date) < new Date(start_date)) return res.status(400).json({ error: 'end_date cannot be before start_date' });
     const school_id = schoolForCreate(req, res);
     if (school_id === null) return;
     const r = await pool.query(
@@ -37,12 +39,14 @@ const list = async (req, res) => {
 const update = async (req, res) => {
   try {
     if (!validId(req.params.id)) return res.status(404).json({ error: 'Event not found' });
-    const ev = await pool.query(`SELECT school_id FROM academic_calendar WHERE id=$1`, [req.params.id]);
+    const ev = await pool.query(`SELECT school_id, start_date, end_date FROM academic_calendar WHERE id=$1`, [req.params.id]);
     if (!ev.rows[0]) return res.status(404).json({ error: 'Event not found' });
     if (!sameSchool(req.user, ev.rows[0].school_id)) return res.status(403).json({ error: 'Access denied' });
     const { title, start_date, end_date, type, color } = req.body;
     if (type && !TYPES.includes(type)) return res.status(400).json({ error: 'Invalid type' });
     if (color && !COLORS.test(color)) return res.status(400).json({ error: 'Invalid color' });
+    if ((start_date && Number.isNaN(Date.parse(start_date))) || (end_date && Number.isNaN(Date.parse(end_date)))) return res.status(400).json({ error: 'Invalid date' });
+    if (new Date(end_date || ev.rows[0].end_date) < new Date(start_date || ev.rows[0].start_date)) return res.status(400).json({ error: 'end_date cannot be before start_date' });
     const r = await pool.query(
       `UPDATE academic_calendar
        SET title=COALESCE($2,title), start_date=COALESCE($3,start_date),
