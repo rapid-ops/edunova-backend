@@ -125,15 +125,15 @@ const analytics = async (req, res) => {
     const [perStudent, perClass, overall] = await Promise.all([
       pool.query(
         `SELECT u.id, u.full_name,
-           COUNT(*) FILTER (WHERE a.status='present') AS present, COUNT(*) AS total,
-           ROUND(COUNT(*) FILTER (WHERE a.status='present')*100.0/NULLIF(COUNT(*),0),1) AS rate
+           COUNT(*) FILTER (WHERE a.status='present') AS present, COUNT(a.id) AS total,
+           ROUND(COUNT(*) FILTER (WHERE a.status='present')*100.0/NULLIF(COUNT(a.id),0),1) AS rate
          FROM users u LEFT JOIN attendance a ON a.student_id=u.id AND a.school_id=$1
          WHERE u.school_id=$1 AND u.role='student'
          GROUP BY u.id,u.full_name ORDER BY rate ASC NULLS LAST`, [school_id]),
       pool.query(
         `SELECT c.id, c.name,
-           COUNT(*) FILTER (WHERE a.status='present') AS present, COUNT(*) AS total,
-           ROUND(COUNT(*) FILTER (WHERE a.status='present')*100.0/NULLIF(COUNT(*),0),1) AS rate
+           COUNT(*) FILTER (WHERE a.status='present') AS present, COUNT(a.id) AS total,
+           ROUND(COUNT(*) FILTER (WHERE a.status='present')*100.0/NULLIF(COUNT(a.id),0),1) AS rate
          FROM classes c LEFT JOIN attendance a ON a.class_id=c.id AND a.school_id=$1
          WHERE c.school_id=$1 GROUP BY c.id,c.name ORDER BY c.name`, [school_id]),
       pool.query(
