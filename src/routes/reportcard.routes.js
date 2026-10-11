@@ -93,16 +93,17 @@ module.exports = router;
 // POST /api/reportcards/generate — pdfkit PDF, returns base64
 router.post('/generate', protect, async (req, res) => {
   try {
-    const { student_id, school_id, term } = req.body;
-    if (!student_id || !school_id) return res.status(400).json({ error: 'student_id and school_id required' });
+    const { student_id, term } = req.body;
+    const { canSeeStudent } = require('../utils/access');
+    const access = await canSeeStudent(req.user, student_id, ['school_admin', 'teacher']);
+    if (access.error) return res.status(access.code).json({ error: access.error });
+    const school_id = access.student.school_id;
+    
 
     const [studentRes, resultsRes, attRes] = await Promise.all([
       pool.query(
-        `SELECT u.full_name, s.name as school_name, s.address as school_address,
-                c.name as class_name
+        `SELECT u.full_name, s.name as school_name, s.address as school_address
          FROM users u JOIN schools s ON s.id=$2
-         LEFT JOIN student_classes ce ON ce.student_id=u.id
-         LEFT JOIN classes c ON c.id=ce.class_id
          WHERE u.id=$1 LIMIT 1`, [student_id, school_id]),
       pool.query(
         `SELECT co.title as subject,
