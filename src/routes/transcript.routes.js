@@ -11,6 +11,9 @@ const pool2 = require('../config/db');
 router.get('/pdf/:student_id', protect, async (req, res) => {
   try {
     const { student_id } = req.params;
+    const { canSeeStudent } = require('../utils/access');
+    const access = await canSeeStudent(req.user, student_id, ['school_admin', 'teacher']);
+    if (access.error) return res.status(access.code).json({ error: access.error });
     const tRes = await pool2.query(
       `SELECT t.*, u.full_name, s.name as school_name
        FROM transcripts t JOIN users u ON u.id=t.student_id JOIN schools s ON s.id=t.school_id
