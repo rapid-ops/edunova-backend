@@ -75,11 +75,16 @@ const bulkMark = async (req, res) => {
     const cls = await getClass(class_id);
     if (!cls) return res.status(404).json({ error: 'Class not found' });
     if (!sameSchool(req.user, cls.school_id)) return res.status(403).json({ error: 'Access denied' });
+    const ids = records.map(r => r.student_id).filter(validId).map(Number);
+    const ok = await pool.query('SELECT id FROM users WHERE id = ANY($1::int[]) AND role = $3 AND school_id = $2', [ids, cls.school_id, 'student']);
+    const allowed = new Set(ok.rows.map(r => String(r.id)));
+    const clean = records.filter(r => allowed.has(String(r.student_id)) && typeof r.status === 'string');
+    if (!clean.length) return res.status(400).json({ error: 'No valid students for this school' });
     const client = await pool.connect();
     const saved = [];
     try {
       await client.query('BEGIN');
-      for (const r of records) {
+      for (const r of clean) {
         if (!validId(r.student_id) || typeof r.status !== 'string' || r.status.length > 20) continue;
         const row = await client.query(
           `INSERT INTO attendance (school_id,student_id,class_id,date,status)
@@ -90,7 +95,7 @@ const bulkMark = async (req, res) => {
       await client.query('COMMIT');
     } catch (e) { await client.query('ROLLBACK').catch(() => {}); throw e; }
     finally { client.release(); }
-    const absent = records.filter(r => r.status.toLowerCase() === 'absent');
+    const absent = clean.filter(r => r.status.toLowerCase() === 'absent');
     if (absent.length) {
       try {
         const schoolRes = await pool.query('SELECT name FROM schools WHERE id=$1', [cls.school_id]);
