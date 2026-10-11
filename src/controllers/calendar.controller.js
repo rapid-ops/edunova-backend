@@ -60,7 +60,7 @@ const update = async (req, res) => {
 const remove = async (req, res) => {
   try {
     if (!validId(req.params.id)) return res.status(404).json({ error: 'Event not found' });
-    const ev = await pool.query(`SELECT school_id FROM academic_calendar WHERE id=$1`, [req.params.id]);
+    const ev = await pool.query(`SELECT school_id, start_date, end_date FROM academic_calendar WHERE id=$1`, [req.params.id]);
     if (!ev.rows[0]) return res.status(404).json({ error: 'Event not found' });
     if (!sameSchool(req.user, ev.rows[0].school_id)) return res.status(403).json({ error: 'Access denied' });
     await pool.query(`DELETE FROM academic_calendar WHERE id=$1`, [req.params.id]);
