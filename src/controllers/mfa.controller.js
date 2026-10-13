@@ -6,7 +6,8 @@ const jwt = require('jsonwebtoken');
 
 const enableMFA = async (req, res) => {
   try {
-    const uRow = await pool.query('SELECT email FROM users WHERE id=$1', [req.user.id]);
+    const uRow = await pool.query('SELECT email, totp_enabled FROM users WHERE id=$1', [req.user.id]);
+    if (uRow.rows[0] && uRow.rows[0].totp_enabled) return res.status(400).json({ error: '2FA already enabled. Disable it first.' });
     const email = uRow.rows[0]?.email || String(req.user.id);
     const secret = speakeasy.generateSecret({ name: `Edunova (${email})`, length: 20 });
     // Store temp secret (not activated yet)
@@ -55,7 +56,7 @@ const verifyMFALogin = async (req, res) => {
       { expiresIn: '7d' }
     );
     res.json({
-      user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role, school_id: user.school_id },
+      user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role, school_id: user.school_id, totp_enabled: true },
       token,
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -94,7 +95,7 @@ const useBackupCode = async (req, res) => {
       { expiresIn: '7d' }
     );
     res.json({
-      user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role, school_id: user.school_id },
+      user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role, school_id: user.school_id, totp_enabled: true },
       token,
     });
   } catch (err) { res.status(500).json({ error: err.message }); }

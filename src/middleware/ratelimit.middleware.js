@@ -1,19 +1,7 @@
 const rateLimit = require('express-rate-limit');
-
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many requests, please try again later' },
-});
-
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many login attempts, please try again later' },
-});
-
-module.exports = { globalLimiter, loginLimiter };
+const skip = (req) => req.path === '/api/health' || req.path.startsWith('/api/schools/public') || req.path.startsWith('/api/schools/subdomain');
+const mk = (limit, error, s) => rateLimit({ windowMs: 15 * 60 * 1000, limit, standardHeaders: true, legacyHeaders: false, skip: s, message: { error } });
+module.exports = {
+  globalLimiter: mk(100, 'Too many requests, try again later', skip),
+  loginLimiter: mk(10, 'Too many login attempts, try again later'),
+};

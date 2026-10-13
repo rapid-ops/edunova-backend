@@ -2,8 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
-app.use(cors());
+const { globalLimiter } = require('./middleware/ratelimit.middleware');
+const ORIGINS = [process.env.FRONTEND_URL, 'https://edunova-frontend-gkaj.vercel.app', 'https://edunova-backend-2x7h.onrender.com', 'http://localhost:3000', 'http://localhost:5000'].filter(Boolean);
+app.set('trust proxy', 1);
+app.use(cors({ origin: (o, cb) => cb(null, !o || ORIGINS.includes(o)), credentials: true }));
 app.use(express.json());
+app.use(globalLimiter);
+app.use(require('./middleware/audit.middleware'));
 
 const routes = [
   'accreditation','adaptive','aicourse','aitutor','analytics','announcement',
@@ -37,6 +42,8 @@ app.use('/api/schools', require('./routes/school.routes'));
 app.use('/api/schools', require('./routes/schooltheme.routes'));
 
 app.use('/api/quizzes', require('./routes/quiz.routes'));
+app.use('/api/custom-roles', require('./routes/customrole.routes'));
+app.use('/api/audit-logs', require('./routes/auditlog.routes'));
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 5000;

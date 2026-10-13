@@ -139,4 +139,14 @@ router.get('/subdomain/:subdomain/courses', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Could not load courses' }); }
 });
 
+router.put('/:id/domain', protect, authorize('super_admin', 'school_admin'), own, async (req, res) => {
+  try {
+    const d = String(req.body.custom_domain || '').trim().toLowerCase();
+    if (d && !/^(?=.{4,253}$)([a-z0-9-]{1,63}[.])+[a-z]{2,}$/.test(d)) return res.status(400).json({ error: 'Invalid domain' });
+    const r = await pool.query('UPDATE schools SET custom_domain=$1 WHERE id=$2 RETURNING id, custom_domain', [d || null, req.params.id]);
+    if (!r.rows[0]) return res.status(404).json({ error: 'School not found' });
+    res.json({ school: r.rows[0] });
+  } catch (e) { res.status(e.code === '23505' ? 400 : 500).json({ error: e.code === '23505' ? 'Domain already in use' : e.message }); }
+});
+
 module.exports = router;
