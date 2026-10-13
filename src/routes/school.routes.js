@@ -85,6 +85,16 @@ router.put('/:id/website', protect, authorize('super_admin','school_admin'), own
   }
 });
 
+router.get('/:id/students', protect, authorize('super_admin', 'school_admin'), ownSchool, async (req, res) => {
+  try {
+    const r = await pool.query(
+      "SELECT id, full_name, email, suspended_at, suspension_reason FROM users WHERE school_id=$1 AND role='student' ORDER BY full_name LIMIT 500",
+      [req.params.id]
+    );
+    res.json({ students: r.rows });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;
 
 const { suspend, reactivate } = require('../controllers/accountlifecycle.controller');
