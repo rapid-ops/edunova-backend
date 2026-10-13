@@ -68,6 +68,10 @@ const templates = {
     subject: `Account Suspended`,
     html: wrap(`<h2>Account Suspended</h2><p>${d.reason || 'Your account has been suspended.'}</p>`, d.school_name),
   }),
+  account_reactivated: (d) => ({
+    subject: 'Your account has been reactivated',
+    html: wrap(`<h2>Account Reactivated</h2><p>Hi ${d.name || ''}, your account is active again. You can sign in now.</p>`, d.school_name),
+  }),
 };
 
 async function sendEmail(to, template, data) {
