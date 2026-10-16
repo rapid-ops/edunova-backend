@@ -44,6 +44,7 @@ app.use('/api/schools', require('./routes/schooltheme.routes'));
 app.use('/api/quizzes', require('./routes/quiz.routes'));
 app.use('/api/custom-roles', require('./routes/customrole.routes'));
 app.use('/api/audit-logs', require('./routes/auditlog.routes'));
+app.use('/api/stats', require('./routes/stats.routes'));
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 5000;
