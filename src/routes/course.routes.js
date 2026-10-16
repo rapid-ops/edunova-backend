@@ -21,7 +21,7 @@ router.get('/public', async (req, res) => {
 router.get('/public/school/:school_id', async (req, res) => {
   try {
     const { rows } = await require('../config/db').query(
-      `SELECT id, title, description, thumbnail_url FROM courses WHERE school_id=$1 AND is_published=true`,
+      `SELECT id, title, description FROM courses WHERE school_id=$1 AND is_published=true`,
       [req.params.school_id]
     );
     res.json({ courses: rows });
