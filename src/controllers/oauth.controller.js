@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const { approvalBlock } = require('../utils/approval');
 
 // Called after Google verifies the user
 const googleCallback = async (req, res) => {
@@ -18,6 +19,11 @@ const googleCallback = async (req, res) => {
         `${process.env.FRONTEND_URL || 'https://edunova-frontend-gkaj.vercel.app'}/auth/login?error=suspended`
       );
     }
+    const blocked = approvalBlock(user);
+    if (blocked) {
+      return res.redirect((process.env.FRONTEND_URL || 'https://edunova-frontend-gkaj.vercel.app') + '/auth/login?error=' + encodeURIComponent(blocked.error));
+    }
+
     // Save google_id if not already saved
     if (!user.google_id) {
       await pool.query(`UPDATE users SET google_id=$1 WHERE id=$2`, [googleId, user.id]);

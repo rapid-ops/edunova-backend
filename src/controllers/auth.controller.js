@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { findUserByEmail } = require('../models/user.model');
 const pool = require('../config/db');
+const { approvalBlock } = require('../utils/approval');
 
 const MAX_ATTEMPTS = 5;
 const LOCK_MINUTES = 30;
@@ -37,6 +38,9 @@ const login = async (req, res) => {
       await pool.query(`UPDATE users SET login_attempts=$1 WHERE id=$2`, [attempts, user.id]);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+
+    const blocked = approvalBlock(user);
+    if (blocked) return res.status(403).json(blocked);
 
     // Reset attempts on success
     await pool.query(`UPDATE users SET login_attempts=0, locked_until=NULL WHERE id=$1`, [user.id]);

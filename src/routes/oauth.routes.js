@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const { approvalBlock } = require('../utils/approval');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -26,6 +27,9 @@ router.post('/google', async (req, res) => {
     if (user.suspended_at) {
       return res.status(401).json({ error: 'Account suspended, contact your administrator' });
     }
+    const blocked = approvalBlock(user);
+    if (blocked) return res.status(403).json(blocked);
+
     if (!user.google_id) {
       await pool.query(`UPDATE users SET google_id=$1 WHERE id=$2`, [googleId, user.id]);
     }

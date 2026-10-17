@@ -2,6 +2,7 @@ const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 const crypto = require('crypto');
 const pool = require('../config/db');
+const { approvalBlock } = require('../utils/approval');
 const jwt = require('jsonwebtoken');
 
 const enableMFA = async (req, res) => {
@@ -47,6 +48,9 @@ const verifyMFALogin = async (req, res) => {
     const user = r.rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
 
+    const blocked = approvalBlock(user);
+    if (blocked) return res.status(403).json(blocked);
+
     const valid = speakeasy.totp.verify({ secret: user.totp_secret, encoding: 'base32', token: totp_token, window: 1 });
     if (!valid) return res.status(400).json({ error: 'Invalid MFA code' });
 
@@ -84,6 +88,9 @@ const useBackupCode = async (req, res) => {
     const r = await pool.query(`SELECT * FROM users WHERE id=$1`, [decoded.id]);
     const user = r.rows[0];
     if (!user) return res.status(404).json({ error: 'User not found' });
+    const blocked = approvalBlock(user);
+    if (blocked) return res.status(403).json(blocked);
+
     const codes = user.totp_backup_codes || [];
     const idx = codes.indexOf(backup_code);
     if (idx === -1) return res.status(400).json({ error: 'Invalid backup code' });
