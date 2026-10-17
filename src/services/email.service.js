@@ -1,3 +1,4 @@
+const { esc } = require('../utils/escape');
 const RESEND_KEY = process.env.RESEND_API_KEY;
 const FROM = 'Edunova <no-reply@edunova.app>';
 
@@ -67,6 +68,17 @@ const templates = {
   account_suspended: (d) => ({
     subject: `Account Suspended`,
     html: wrap(`<h2>Account Suspended</h2><p>${d.reason || 'Your account has been suspended.'}</p>`, d.school_name),
+  }),
+  account_approved: (d) => ({
+    subject: `Your account at ${d.school_name} is approved`,
+    html: wrap(`<h2>Account Approved</h2><p>Hi ${esc(d.name)}, your school administrator approved your account. You can sign in now.</p>
+      <a href="https://edunova-frontend-gkaj.vercel.app/auth/login" style="display:block;margin-top:20px;background:#2563eb;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;text-align:center;font-weight:600">Sign in to Edunova</a>`, esc(d.school_name)),
+  }),
+  account_rejected: (d) => ({
+    subject: 'Your registration was not approved',
+    html: wrap(`<h2>Registration Not Approved</h2><p>Hi ${esc(d.name)}, your registration at ${esc(d.school_name)} was not approved.</p>
+      <p><strong>Reason:</strong> ${esc(d.reason)}</p>
+      <p>Contact your school if you think this is a mistake.</p>`, esc(d.school_name)),
   }),
   account_reactivated: (d) => ({
     subject: 'Your account has been reactivated',

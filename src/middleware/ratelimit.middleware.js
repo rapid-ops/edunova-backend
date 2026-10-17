@@ -4,4 +4,5 @@ const mk = (limit, error, s) => rateLimit({ windowMs: 15 * 60 * 1000, limit, sta
 module.exports = {
   globalLimiter: mk(100, 'Too many requests, try again later', skip),
   loginLimiter: mk(10, 'Too many login attempts, try again later'),
+  signupLimiter: mk(10, 'Too many signup attempts, try again later'),
 };
