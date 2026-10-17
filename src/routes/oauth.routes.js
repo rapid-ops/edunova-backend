@@ -21,7 +21,7 @@ router.post('/google', async (req, res) => {
 
     const r = await pool.query(`SELECT * FROM users WHERE email=$1`, [email]);
     if (!r.rows[0]) {
-      return res.status(404).json({ error: 'No account found for this Google email. Ask your school admin to create your account first.' });
+      return res.status(404).json({ error: 'No account found for this Google email. Create one with the sign-up form, or ask your school admin to add you.' });
     }
     const user = r.rows[0];
     if (user.suspended_at) {
