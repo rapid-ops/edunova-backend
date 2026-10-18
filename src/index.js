@@ -34,6 +34,7 @@ routes.forEach(name => {
 });
 
 // Manual route overrides (correct paths)
+app.use('/api/auth', require('./routes/recovery.routes'));
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/auth', require('./routes/oauth.routes'));
 app.use('/api/auth', require('./routes/signup.routes'));

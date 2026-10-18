@@ -84,19 +84,29 @@ const templates = {
     subject: 'Your account has been reactivated',
     html: wrap(`<h2>Account Reactivated</h2><p>Hi ${d.name || ''}, your account is active again. You can sign in now.</p>`, d.school_name),
   }),
+  password_reset: (d) => ({
+    subject: 'Reset your Edunova password',
+    html: wrap(`<h2 style="color:#1f2937">Reset your password</h2>
+      <p style="color:#4b5563">Hi ${esc(d.name)}, we received a request to reset your password. The link works for 1 hour and can be used once.</p>
+      <a href="${esc(d.link)}" style="display:block;margin-top:20px;background:#2563eb;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;text-align:center;font-weight:600">Reset password</a>
+      <p style="color:#6b7280;font-size:12px;margin-top:16px">If you did not ask for this, ignore this email. Your password will not change.</p>
+      <p style="color:#9ca3af;font-size:11px;word-break:break-all">${esc(d.link)}</p>`, 'Edunova'),
+  }),
 };
 
 async function sendEmail(to, template, data) {
+  if (!RESEND_KEY) console.warn('RESEND_API_KEY not set, email skipped');
   if (!RESEND_KEY || !to) return;
   const tmpl = templates[template];
   if (!tmpl) return;
   const { subject, html } = tmpl(data);
   try {
-    await fetch('https://api.resend.com/emails', {
+    const resp = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from: FROM, to, subject, html }),
     });
+    if (!resp.ok) console.error('Resend error', resp.status, (await resp.text()).slice(0, 300));
   } catch (err) {
     console.error('Email error:', err.message);
   }
