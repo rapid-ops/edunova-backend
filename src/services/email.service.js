@@ -101,6 +101,7 @@ async function sendEmail(to, template, data) {
   if (!tmpl) return;
   const { subject, html } = tmpl(data);
   try {
+    if (process.env.GMAIL_REFRESH_TOKEN) { await require('./gmail.service').sendViaGmail({ to, subject, html }); return; }
     const resp = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
