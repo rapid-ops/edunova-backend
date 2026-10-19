@@ -48,6 +48,7 @@ app.use('/api/quizzes', require('./routes/quiz.routes'));
 app.use('/api/custom-roles', require('./routes/customrole.routes'));
 app.use('/api/audit-logs', require('./routes/auditlog.routes'));
 app.use('/api/stats', require('./routes/stats.routes'));
+app.get('/api/_ip', (req, res) => res.json({ ip: req.ip, xff: req.headers['x-forwarded-for'] || null, tci: req.headers['true-client-ip'] || null, cf: req.headers['cf-connecting-ip'] || null }));
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 5000;
