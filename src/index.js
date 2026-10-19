@@ -4,7 +4,7 @@ const app = express();
 
 const { globalLimiter } = require('./middleware/ratelimit.middleware');
 const ORIGINS = [process.env.FRONTEND_URL, 'https://edunova-frontend-gkaj.vercel.app', 'https://edunova-backend-2x7h.onrender.com', 'http://localhost:3000', 'http://localhost:5000'].filter(Boolean);
-app.set('trust proxy', 1);
+app.set('trust proxy', 3);
 app.use(cors({ origin: (o, cb) => cb(null, !o || ORIGINS.includes(o)), credentials: true }));
 app.use(express.json());
 app.use(globalLimiter);
