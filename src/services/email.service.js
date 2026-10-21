@@ -95,6 +95,7 @@ const templates = {
 };
 
 async function sendEmail(to, template, data) {
+  console.log('mail env:', JSON.stringify(Object.keys(process.env).filter((k) => /gmail/i.test(k))));
   if (!RESEND_KEY) console.warn('RESEND_API_KEY not set, email skipped');
   if (!RESEND_KEY || !to) return;
   const tmpl = templates[template];
