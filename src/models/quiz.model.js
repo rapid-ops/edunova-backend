@@ -14,7 +14,15 @@ const isCorrect = (q, given) => {
     try {
       const correct = typeof q.correct_answer === 'string' ? JSON.parse(q.correct_answer) : q.correct_answer;
       const givenObj = typeof given === 'string' ? JSON.parse(given) : given;
-      return JSON.stringify(correct) === JSON.stringify(givenObj);
+      const toMap = (arr) => {
+        const m = {};
+        (Array.isArray(arr) ? arr : []).forEach((p) => { if (p) m[norm(p.left)] = norm(p.right); });
+        return m;
+      };
+      const cm = toMap(correct);
+      const gm = toMap(givenObj);
+      const keys = Object.keys(cm);
+      return keys.length > 0 && keys.length === Object.keys(gm).length && keys.every((k) => gm[k] === cm[k]);
     } catch { return false; }
   }
   return norm(given) === norm(q.correct_answer);

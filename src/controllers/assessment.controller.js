@@ -32,6 +32,22 @@ const create = async (req, res) => {
     if (!Number.isFinite(marks) || marks <= 0 || marks > 1000) {
       return res.status(400).json({ error: 'Total marks must be between 1 and 1000' });
     }
+    let cleanRubric = null;
+    if (rubric !== undefined && rubric !== null) {
+      if (!Array.isArray(rubric) || rubric.length > 20) return res.status(400).json({ error: 'Invalid rubric' });
+      cleanRubric = [];
+      for (const r of rubric) {
+        const name = String((r && r.criterion) || '').trim();
+        const mx = Number(r && r.max_score);
+        if (!name || !Number.isFinite(mx) || mx <= 0) return res.status(400).json({ error: 'Each rubric criterion needs a name and a max_score above 0' });
+        cleanRubric.push({ criterion: name.slice(0, 120), max_score: mx });
+      }
+      if (cleanRubric.length === 0) cleanRubric = null;
+      else {
+        if (new Set(cleanRubric.map((r) => r.criterion.toLowerCase())).size !== cleanRubric.length) return res.status(400).json({ error: 'Rubric criteria must have different names' });
+        if (Math.abs(cleanRubric.reduce((s, r) => s + r.max_score, 0) - marks) > 0.000001) return res.status(400).json({ error: 'Rubric max scores must add up to total marks' });
+      }
+    }
     const course = await courseSchool(course_id);
     if (!course) return res.status(404).json({ error: 'Course not found' });
     if (!sameSchool(req.user, course.school_id)) return res.status(403).json({ error: 'Access denied' });
@@ -41,7 +57,7 @@ const create = async (req, res) => {
       type,
       due_date: due_date || null,
       total_marks: marks,
-      rubric: Array.isArray(rubric) ? rubric : null,
+      rubric: cleanRubric,
     });
     res.status(201).json({ assessment });
   } catch (err) {

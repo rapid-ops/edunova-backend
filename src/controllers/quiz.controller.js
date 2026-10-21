@@ -139,6 +139,22 @@ const info = async (req, res) => {
   }
 };
 
+const publicOptions = (q) => {
+  if (q.type === 'mcq') return q.options || [];
+  if (q.type === 'matching') {
+    let pairs = q.options;
+    if (typeof pairs === 'string') { try { pairs = JSON.parse(pairs); } catch (e) { pairs = []; } }
+    pairs = Array.isArray(pairs) ? pairs : [];
+    const rights = pairs.map((p) => String(p.right));
+    for (let i = rights.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [rights[i], rights[j]] = [rights[j], rights[i]];
+    }
+    return { lefts: pairs.map((p) => String(p.left)), rights };
+  }
+  return null;
+};
+
 const start = async (req, res) => {
   try {
     const a = await loadQuiz(req, res);
@@ -157,7 +173,7 @@ const start = async (req, res) => {
       id: q.id,
       question: q.question,
       type: q.type,
-      options: q.type === 'mcq' ? q.options || [] : null,
+      options: publicOptions(q),
       marks: q.marks,
     }));
     res.json({
@@ -255,7 +271,7 @@ const addQuestion = async (req, res) => {
     if (!Number.isInteger(mk) || mk < 1 || mk > 100) return res.status(400).json({ error: 'Marks must be 1 to 100' });
 
     let answer = String(correct_answer === undefined || correct_answer === null ? '' : correct_answer).trim();
-    if (!answer) return res.status(400).json({ error: 'Correct answer required' });
+    if (!answer && qtype !== 'matching') return res.status(400).json({ error: 'Correct answer required' });
     let opts = null;
     if (qtype === 'mcq') {
       opts = (Array.isArray(options) ? options : []).map((o) => String(o).trim()).filter(Boolean);
