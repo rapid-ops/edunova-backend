@@ -30,7 +30,7 @@ const create = async (req, res) => {
         `SELECT u.full_name as student_name, p.full_name as parent_name, p.phone as parent_phone,
                 sc.name as school_name
          FROM users u
-         LEFT JOIN student_parents sp ON sp.student_id = u.id
+         LEFT JOIN parent_student sp ON sp.student_id = u.id
          LEFT JOIN users p ON p.id = sp.parent_id
          JOIN schools sc ON sc.id = $1
          WHERE u.id = $2`,
@@ -39,10 +39,10 @@ const create = async (req, res) => {
       const info = infoRes.rows[0];
       if (info?.parent_phone) {
         const dueDateStr = due_date ? new Date(due_date).toLocaleDateString('en-NG') : 'Not set';
-        sendWhatsApp(
+        Promise.resolve(sendWhatsApp(
           info.parent_phone,
           `💰 Fee Notice\nDear ${info.parent_name}, a new fee of ₦${amt.toLocaleString()} has been assigned to ${info.student_name}: ${description || 'School fee'}. Due date: ${dueDateStr}. Pay via the Edunova app.`
-        );
+        )).catch((e) => console.error('WhatsApp fee notice failed:', e.message));
       }
     } catch (e) {
       console.error('WhatsApp fee notice error:', e.message);
