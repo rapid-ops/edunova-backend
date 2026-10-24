@@ -63,7 +63,7 @@ router.get('/school/:school_id', protect, authorize('super_admin', 'school_admin
       safe('upcoming_events', () => q(`SELECT id, title, type, to_char(start_date,'YYYY-MM-DD') AS start_date, to_char(end_date,'YYYY-MM-DD') AS end_date
           FROM academic_calendar WHERE school_id=$1 AND end_date >= (NOW() AT TIME ZONE $2)::date ORDER BY start_date LIMIT 5`, [sid, tz])),
       safe('recent_registrations', () => q(`SELECT id, full_name, role, created_at FROM users
-          WHERE school_id=$1 AND role IN ('student','teacher') ORDER BY created_at DESC LIMIT 5`)),
+          WHERE school_id=$1 AND role IN ('student','teacher') AND approval_status='approved' ORDER BY created_at DESC LIMIT 5`)),
       safe('top_courses', async () => (await q(`SELECT c.id, c.title, COUNT(e.id) AS enrolled FROM courses c
           LEFT JOIN enrollments e ON e.course_id=c.id WHERE c.school_id=$1
           GROUP BY c.id ORDER BY enrolled DESC, c.title LIMIT 5`)).map((x) => ({ id: x.id, title: x.title, enrolled: num(x.enrolled) }))),

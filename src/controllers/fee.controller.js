@@ -31,7 +31,7 @@ const create = async (req, res) => {
                 sc.name as school_name
          FROM users u
          LEFT JOIN parent_student sp ON sp.student_id = u.id
-         LEFT JOIN users p ON p.id = sp.parent_id
+         LEFT JOIN users p ON p.id = sp.parent_id AND p.approval_status='approved'
          JOIN schools sc ON sc.id = $1
          WHERE u.id = $2`,
         [st.school_id, st.id]

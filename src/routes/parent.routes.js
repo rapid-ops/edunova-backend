@@ -139,4 +139,45 @@ router.delete('/unlink', protect, authorize('super_admin','school_admin'), async
   }
 });
 
+// School-wide parent list with their linked children (school admin screen)
+router.get('/school/:school_id', protect, authorize('super_admin', 'school_admin'), async (req, res) => {
+  try {
+    const sid = req.params.school_id;
+    if (!validId(sid)) return res.status(404).json({ error: 'School not found' });
+    if (req.user.role !== 'super_admin' && Number(req.user.school_id) !== Number(sid)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    const r = await pool.query(
+      `SELECT p.id, p.full_name, p.email, p.phone,
+              COALESCE(json_agg(json_build_object('id', s.id, 'full_name', s.full_name) ORDER BY s.full_name)
+                       FILTER (WHERE s.id IS NOT NULL), '[]'::json) AS children
+       FROM users p
+       LEFT JOIN parent_student ps ON ps.parent_id = p.id
+       LEFT JOIN users s ON s.id = ps.student_id AND s.school_id = p.school_id
+       WHERE p.school_id=$1 AND p.role='parent' AND p.approval_status='approved'
+       GROUP BY p.id ORDER BY p.full_name LIMIT 500`,
+      [sid]
+    );
+    res.json({ parents: r.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// A parent's own children (used by the parent dashboard)
+router.get('/children', protect, authorize('parent'), async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT u.id, u.full_name, u.email, u.avatar_url
+       FROM parent_student ps
+       JOIN users u ON u.id = ps.student_id AND u.approval_status='approved'
+       WHERE ps.parent_id=$1 ORDER BY u.full_name`,
+      [req.user.id]
+    );
+    res.json({ children: r.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

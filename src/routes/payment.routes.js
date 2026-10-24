@@ -36,7 +36,7 @@ const sendReceipts = async (attempt, amount, reference) => {
     } catch (e) { console.error('receipt email failed:', e.message); }
     try {
       const ps = await pool.query(
-        `SELECT u.full_name, u.phone FROM parent_student ps JOIN users u ON u.id=ps.parent_id
+        `SELECT u.full_name, u.phone FROM parent_student ps JOIN users u ON u.id=ps.parent_id AND u.approval_status='approved'
          WHERE ps.student_id=$1 AND u.phone IS NOT NULL AND u.phone <> ''`, [attempt.student_id]);
       for (const p of ps.rows) {
         try {

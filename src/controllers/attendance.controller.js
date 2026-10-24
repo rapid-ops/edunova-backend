@@ -24,7 +24,7 @@ const mark = async (req, res) => {
         const schoolRes = await pool.query('SELECT name FROM schools WHERE id=$1', [cls.school_id]);
         const schoolName = schoolRes.rows[0]?.name || 'School';
         const parentRes = await pool.query(
-          `SELECT u.phone, u.full_name FROM users u JOIN parent_student sp ON sp.parent_id=u.id WHERE sp.student_id=$1 LIMIT 1`,
+          `SELECT u.phone, u.full_name FROM users u JOIN parent_student sp ON sp.parent_id=u.id WHERE sp.student_id=$1 AND u.approval_status='approved' LIMIT 1`,
           [st.id]
         );
         if (parentRes.rows[0]?.phone) {
@@ -105,7 +105,7 @@ const bulkMark = async (req, res) => {
           const stRes = await pool.query('SELECT full_name FROM users WHERE id=$1', [r.student_id]);
           if (!stRes.rows[0]) continue;
           const pRes = await pool.query(
-            `SELECT u.phone FROM users u JOIN parent_student sp ON sp.parent_id=u.id WHERE sp.student_id=$1 LIMIT 1`,
+            `SELECT u.phone FROM users u JOIN parent_student sp ON sp.parent_id=u.id WHERE sp.student_id=$1 AND u.approval_status='approved' LIMIT 1`,
             [r.student_id]);
           if (pRes.rows[0]?.phone)
             sendWhatsApp(pRes.rows[0].phone,
