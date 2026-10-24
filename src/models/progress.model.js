@@ -6,7 +6,7 @@ const upsertProgress = async ({ student_id, lesson_id, course_id, watch_percent,
      VALUES ($1,$2,$3,$4,$5,NOW())
      ON CONFLICT (student_id, lesson_id) DO UPDATE
      SET watch_percent=GREATEST(lesson_progress.watch_percent, $4),
-         completed=$5,
+         completed=(lesson_progress.completed OR $5),
          last_watched_at=NOW()
      RETURNING *`,
     [student_id, lesson_id, course_id, watch_percent || 0, completed || false]
