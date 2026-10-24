@@ -22,6 +22,14 @@ const lessonWithSchool = async (id) => {
 
 const strip = (l) => { const { course_school_id, ...rest } = l; return rest; };
 
+const cleanVideoUrl = (v) => {
+  if (v === undefined || v === null || String(v).trim() === '') return null;
+  const s = String(v).trim();
+  if (s.length > 500) return false;
+  try { return new URL(s).protocol === 'https:' ? s : false; } catch { return false; }
+};
+const BAD_LINK = 'The video link must be a full web address starting with https://';
+
 const DAY = 86400000;
 const isStudent = (user) => user.role === 'student';
 const isDripped = (lesson) => Number(lesson.drip_days) > 0;
@@ -37,13 +45,15 @@ const create = async (req, res) => {
     if (!validId(course_id) || !title || !String(title).trim()) {
       return res.status(400).json({ error: 'course_id and title required' });
     }
+    const vu = cleanVideoUrl(video_url);
+    if (vu === false) return res.status(400).json({ error: BAD_LINK });
     const course = await courseSchool(course_id);
     if (!course) return res.status(404).json({ error: 'Course not found' });
     if (!sameSchool(req.user, course.school_id)) return res.status(403).json({ error: 'Access denied' });
     const lesson = await createLesson({
       course_id: Number(course_id),
       title: String(title).trim().slice(0, 255),
-      content, video_url, file_url,
+      content, video_url: vu, file_url,
       position: Number(position) || 0,
     });
     res.status(201).json({ lesson });
@@ -80,12 +90,18 @@ const get = async (req, res) => {
     if (!validId(req.params.id)) return res.status(404).json({ error: 'Lesson not found' });
     const lesson = await lessonWithSchool(req.params.id);
     if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
-    if (!sameSchool(req.user, lesson.course_school_id)) return res.status(403).json({ error: 'Access denied' });
-    if (isStudent(req.user) && isDripped(lesson)) {
+    const deny = () => res.status(403).json({ error: 'You do not have access to this lesson' });
+    const role = req.user.role;
+    if (!sameSchool(req.user, lesson.course_school_id)) return deny();
+    if (role === 'student') {
       const enrolled = await enrolledAt(req.user.id, lesson.course_id);
-      if (!enrolled) return res.status(403).json({ error: 'You are not enrolled in this course' });
-      const at = unlockAt(enrolled, lesson);
-      if (at > new Date()) return res.status(403).json({ error: 'This lesson is not unlocked yet', unlocks_at: at });
+      if (!enrolled) return deny();
+      if (isDripped(lesson)) {
+        const at = unlockAt(enrolled, lesson);
+        if (at > new Date()) return res.status(403).json({ error: 'This lesson is not unlocked yet', unlocks_at: at });
+      }
+    } else if (!['super_admin', 'school_admin', 'teacher'].includes(role)) {
+      return deny();
     }
     res.json({ lesson: strip(lesson) });
   } catch (err) {
@@ -102,10 +118,12 @@ const update = async (req, res) => {
     const b = req.body;
     const title = b.title !== undefined ? String(b.title).trim() : existing.title;
     if (!title) return res.status(400).json({ error: 'title cannot be empty' });
+    const vu = b.video_url !== undefined ? cleanVideoUrl(b.video_url) : null;
+    if (vu === false) return res.status(400).json({ error: BAD_LINK });
     const lesson = await updateLesson(existing.id, {
       title: title.slice(0, 255),
       content: b.content !== undefined ? b.content : existing.content,
-      video_url: b.video_url !== undefined ? b.video_url : existing.video_url,
+      video_url: b.video_url !== undefined ? vu : existing.video_url,
       file_url: b.file_url !== undefined ? b.file_url : existing.file_url,
       position: b.position !== undefined ? (Number(b.position) || 0) : existing.position,
     });
