@@ -116,4 +116,13 @@ const createBadge = async ({ school_id, name, description, icon, condition_type,
   return r.rows[0];
 };
 
-module.exports = { awardPoints, getProfile, getLeaderboard, checkAndAwardBadges, updateLeaderboard, getBadges, createBadge };
+const awardOnce = async (student_id, school_id, points, ref_type, ref_id) => {
+  const r = await pool.query(
+    `INSERT INTO gamification_awards (student_id, ref_type, ref_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING RETURNING id`,
+    [student_id, ref_type, ref_id]
+  );
+  if (!r.rowCount) return null;
+  return awardPoints(student_id, school_id, points);
+};
+
+module.exports = { awardOnce, awardPoints, getProfile, getLeaderboard, checkAndAwardBadges, updateLeaderboard, getBadges, createBadge };

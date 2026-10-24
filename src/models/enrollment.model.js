@@ -11,8 +11,9 @@ const enroll = async ({ student_id, course_id }) => {
 
 const getEnrollmentsByStudent = async (student_id) => {
   const result = await pool.query(
-    `SELECT e.*, c.title as course_title FROM enrollments e
+    `SELECT e.*, c.title as course_title, t.full_name as teacher_name FROM enrollments e
      JOIN courses c ON e.course_id = c.id
+     LEFT JOIN users t ON t.id = c.teacher_id
      WHERE e.student_id=$1`,
     [student_id]
   );

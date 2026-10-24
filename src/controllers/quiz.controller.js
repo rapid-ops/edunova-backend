@@ -3,6 +3,7 @@ const learningTwinModel = require('../models/learningtwin.model');
 const m = require('../models/quiz.model');
 const { issueCertificate, getCertificate } = require('../models/certificate.model');
 const { sendWhatsApp } = require('../services/whatsapp.service');
+const gam = require('../models/gamification.model');
 const pool = require('../config/db');
 
 const validId = (v) => /^\d+$/.test(String(v));
@@ -199,6 +200,10 @@ const submit = async (req, res) => {
     const r = await m.submitQuizAttempt(a, req.user.id, answers);
     if (r.error) return res.status(r.code || 400).json({ error: r.error, expired: !!r.expired });
 
+    if (r.passed && req.user.role === 'student') {
+      try { await gam.awardOnce(req.user.id, a.course_school_id, 25, 'quiz_passed', a.id); }
+      catch (e) { console.error('Gamification award failed:', e.message); }
+    }
     let certificate_issued = false;
     if (r.passed && a.awards_certificate) {
       try {

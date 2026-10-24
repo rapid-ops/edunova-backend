@@ -3,6 +3,11 @@ const pool = require('../config/db');
 const { upsertProgress, getCourseProgress, getCourseCompletionPercent } = require('../models/progress.model');
 const { issueCertificate } = require('../models/certificate.model');
 const { validId, sameSchool, canSeeStudent } = require('../utils/access');
+const gam = require('../models/gamification.model');
+const isDone = async (student_id, lesson_id) => {
+  const r = await pool.query(`SELECT completed FROM lesson_progress WHERE student_id=$1 AND lesson_id=$2`, [student_id, lesson_id]);
+  return !!(r.rows[0] && r.rows[0].completed);
+};
 
 const updateProgress = async (req, res) => {
   try {
@@ -26,11 +31,18 @@ const updateProgress = async (req, res) => {
       watch_percent: wp, completed: typeof completed === 'boolean' ? completed : undefined,
     });
     const percent = await getCourseCompletionPercent(student_id, lesson.course_id);
+    let gamification = null;
+    if ((completed === true || (wp !== undefined && wp >= 90)) && (await isDone(student_id, lesson.id))) {
+      try {
+        const prof = await gam.awardOnce(student_id, lesson.school_id, 10, 'lesson_complete', lesson.id);
+        if (prof) gamification = { xp_awarded: 10, level: prof.level, total_xp: prof.total_xp };
+      } catch (e) { console.error('Gamification award failed:', e.message); }
+    }
     let certificate = null;
     if (percent === 100) {
       certificate = await issueCertificate({ student_id, course_id: lesson.course_id, school_id: lesson.school_id });
     }
-    res.json({ progress, course_completion_percent: percent, certificate });
+    res.json({ progress, course_completion_percent: percent, certificate, gamification });
   learningTwinModel.analyze(req.user.id).catch(() => {});
   } catch (err) { res.status(500).json({ error: err.message }); }
 };

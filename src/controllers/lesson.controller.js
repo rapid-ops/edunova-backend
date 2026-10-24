@@ -22,6 +22,15 @@ const lessonWithSchool = async (id) => {
 
 const strip = (l) => { const { course_school_id, ...rest } = l; return rest; };
 
+const DAY = 86400000;
+const isStudent = (user) => user.role === 'student';
+const isDripped = (lesson) => Number(lesson.drip_days) > 0;
+const enrolledAt = async (student_id, course_id) => {
+  const r = await pool.query(`SELECT enrolled_at FROM enrollments WHERE student_id=$1 AND course_id=$2`, [student_id, course_id]);
+  return r.rows[0] ? r.rows[0].enrolled_at : null;
+};
+const unlockAt = (enrolled, lesson) => new Date(new Date(enrolled).getTime() + Number(lesson.drip_days) * DAY);
+
 const create = async (req, res) => {
   try {
     const { course_id, title, content, video_url, file_url, position } = req.body;
@@ -50,7 +59,17 @@ const list = async (req, res) => {
     if (!course) return res.status(404).json({ error: 'Course not found' });
     if (!sameSchool(req.user, course.school_id)) return res.status(403).json({ error: 'Access denied' });
     const lessons = await getLessonsByCourse(req.params.course_id);
-    res.json({ lessons });
+    if (!isStudent(req.user)) return res.json({ lessons });
+    const enrolled = lessons.some(isDripped) ? await enrolledAt(req.user.id, Number(req.params.course_id)) : null;
+    const now = new Date();
+    const out = lessons.map((l) => {
+      if (!isDripped(l)) return l;
+      const at = enrolled ? unlockAt(enrolled, l) : null;
+      if (at && at <= now) return l;
+      const { content, video_url, file_url, ...rest } = l;
+      return { ...rest, locked: true, unlocks_at: at };
+    });
+    res.json({ lessons: out });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -62,6 +81,12 @@ const get = async (req, res) => {
     const lesson = await lessonWithSchool(req.params.id);
     if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
     if (!sameSchool(req.user, lesson.course_school_id)) return res.status(403).json({ error: 'Access denied' });
+    if (isStudent(req.user) && isDripped(lesson)) {
+      const enrolled = await enrolledAt(req.user.id, lesson.course_id);
+      if (!enrolled) return res.status(403).json({ error: 'You are not enrolled in this course' });
+      const at = unlockAt(enrolled, lesson);
+      if (at > new Date()) return res.status(403).json({ error: 'This lesson is not unlocked yet', unlocks_at: at });
+    }
     res.json({ lesson: strip(lesson) });
   } catch (err) {
     res.status(500).json({ error: err.message });
