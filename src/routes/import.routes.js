@@ -6,12 +6,14 @@ const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 const { sendWhatsApp } = require('../services/whatsapp.service');
 const { sendEmail } = require('../services/email.service');
+const { protect, authorize } = require('../middleware/auth.middleware');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.post('/students', upload.single('file'), async (req, res) => {
+router.post('/students', protect, authorize('school_admin', 'super_admin'), upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const school_id = req.body.school_id || req.user?.school_id;
+  const school_id = req.user.role === 'super_admin' ? req.body.school_id : req.user.school_id;
+  if (!school_id || !/^\d+$/.test(String(school_id))) return res.status(400).json({ error: 'Choose a school first' });
 
   let rows;
   try {
