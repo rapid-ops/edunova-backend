@@ -2,12 +2,12 @@ const pool = require('../config/db');
 
 const awardPoints = async (student_id, school_id, points) => {
   const r = await pool.query(`
-    INSERT INTO gamification_points (student_id, school_id, points, total_xp, last_activity_date)
-    VALUES ($1, $2, $3, $3, CURRENT_DATE)
+    INSERT INTO gamification_points (student_id, school_id, points, total_xp, level, streak_days, last_activity_date)
+    VALUES ($1, $2, $3, $3, ($3 / 100) + 1, 1, CURRENT_DATE)
     ON CONFLICT (student_id, school_id) DO UPDATE SET
       points = gamification_points.points + $3,
       total_xp = gamification_points.total_xp + $3,
-      level = FLOOR((gamification_points.total_xp + $3) / 100) + 1,
+      level = ((gamification_points.total_xp + $3) / 100) + 1,
       streak_days = CASE
         WHEN gamification_points.last_activity_date = CURRENT_DATE - 1
           THEN gamification_points.streak_days + 1
@@ -93,19 +93,13 @@ const checkAndAwardBadges = async (student_id, school_id) => {
 };
 
 const updateLeaderboard = async (school_id) => {
-  const r = await pool.query(
-    `SELECT student_id, points FROM gamification_points WHERE school_id=$1 ORDER BY points DESC`,
-    [school_id]
-  );
-  for (let i = 0; i < r.rows.length; i++) {
-    const { student_id, points } = r.rows[i];
-    await pool.query(`
-      INSERT INTO leaderboard_entries (school_id, student_id, period, points, rank)
-      VALUES ($1,$2,'all_time',$3,$4)
-      ON CONFLICT (school_id, student_id, period) DO UPDATE
-      SET points=$3, rank=$4, updated_at=NOW()
-    `, [school_id, student_id, points, i + 1]);
-  }
+  await pool.query(`
+    INSERT INTO leaderboard_entries (school_id, student_id, period, points, rank)
+    SELECT school_id, student_id, 'all_time', points, RANK() OVER (ORDER BY points DESC)::int
+    FROM gamification_points WHERE school_id=$1
+    ON CONFLICT (school_id, student_id, period) DO UPDATE
+    SET points=EXCLUDED.points, rank=EXCLUDED.rank, updated_at=NOW()
+  `, [school_id]);
 };
 
 const getBadges = async (school_id) => {
