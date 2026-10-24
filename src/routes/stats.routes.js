@@ -6,8 +6,8 @@ router.get('/public', async (req, res) => {
   try {
     const [schools, students, teachers, courses] = await Promise.all([
       pool.query("SELECT COUNT(*) FROM schools WHERE is_active = true"),
-      pool.query("SELECT COUNT(*) FROM users WHERE role = 'student' AND is_active = true"),
-      pool.query("SELECT COUNT(*) FROM users WHERE role = 'teacher' AND is_active = true"),
+      pool.query("SELECT COUNT(*) FROM users WHERE role = 'student' AND is_active = true AND approval_status = 'approved'"),
+      pool.query("SELECT COUNT(*) FROM users WHERE role = 'teacher' AND is_active = true AND approval_status = 'approved'"),
       pool.query("SELECT COUNT(*) FROM courses WHERE is_published = true"),
     ]);
     res.json({

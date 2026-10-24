@@ -47,7 +47,7 @@ router.post('/broadcast', protect, authorize('super_admin','school_admin'), asyn
       school_id = Number(req.body.school_id);
     }
     if (school_id == null) return res.status(403).json({ error: 'Access denied' });
-    const users = await pool.query(`SELECT id, phone FROM users WHERE school_id=$1`, [school_id]);
+    const users = await pool.query(`SELECT id, phone FROM users WHERE school_id=$1 AND approval_status='approved'`, [school_id]);
     const io = req.app.get('io');
     const inserts = users.rows.map((u) =>
       pool.query(

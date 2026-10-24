@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 const predict = async (school_id) => {
-  const students = await pool.query(`SELECT u.id,u.full_name,u.email FROM users u WHERE u.school_id=$1 AND u.role='student'`, [school_id]);
+  const students = await pool.query(`SELECT u.id,u.full_name,u.email FROM users u WHERE u.school_id=$1 AND u.role='student' AND u.approval_status='approved'`, [school_id]);
   const predictions = [];
   for (const s of students.rows) {
     const events = await pool.query(`SELECT COUNT(*) as cnt FROM analytics_events WHERE student_id=$1 AND created_at>NOW()-INTERVAL '7 days'`, [s.id]);

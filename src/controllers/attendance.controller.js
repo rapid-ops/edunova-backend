@@ -128,7 +128,7 @@ const analytics = async (req, res) => {
            COUNT(*) FILTER (WHERE a.status='present') AS present, COUNT(a.id) AS total,
            ROUND(COUNT(*) FILTER (WHERE a.status='present')*100.0/NULLIF(COUNT(a.id),0),1) AS rate
          FROM users u LEFT JOIN attendance a ON a.student_id=u.id AND a.school_id=$1
-         WHERE u.school_id=$1 AND u.role='student'
+         WHERE u.school_id=$1 AND u.role='student' AND u.approval_status='approved'
          GROUP BY u.id,u.full_name ORDER BY rate ASC NULLS LAST`, [school_id]),
       pool.query(
         `SELECT c.id, c.name,

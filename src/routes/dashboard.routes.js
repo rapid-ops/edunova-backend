@@ -22,9 +22,9 @@ router.get('/school/:school_id', protect, authorize('super_admin', 'school_admin
     const [totals, attToday, attTrend, fees, feesMonthly, announcements, assessments, events, registrations, topCourses] = await Promise.all([
       safe('totals', async () => {
         const r = (await q(`SELECT
-          (SELECT COUNT(*) FROM users WHERE school_id=$1 AND role='student' AND is_active=true) AS students,
-          (SELECT COUNT(*) FROM users WHERE school_id=$1 AND role='teacher' AND is_active=true) AS teachers,
-          (SELECT COUNT(*) FROM users WHERE school_id=$1 AND role='parent' AND is_active=true) AS parents,
+          (SELECT COUNT(*) FROM users WHERE school_id=$1 AND role='student' AND is_active=true AND approval_status='approved') AS students,
+          (SELECT COUNT(*) FROM users WHERE school_id=$1 AND role='teacher' AND is_active=true AND approval_status='approved') AS teachers,
+          (SELECT COUNT(*) FROM users WHERE school_id=$1 AND role='parent' AND is_active=true AND approval_status='approved') AS parents,
           (SELECT COUNT(*) FROM classes WHERE school_id=$1) AS classes,
           (SELECT COUNT(*) FROM courses WHERE school_id=$1) AS courses,
           (SELECT COUNT(*) FROM courses WHERE school_id=$1 AND is_published=true) AS published_courses,

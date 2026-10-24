@@ -20,7 +20,7 @@ router.get('/users/:school_id', protect, async (req, res) => {
   }
   try {
     const result = await pool.query(
-      `SELECT id, full_name, email, role, is_active, created_at, phone, avatar_url FROM users WHERE school_id=$1`,
+      `SELECT id, full_name, email, role, is_active, created_at, phone, avatar_url FROM users WHERE school_id=$1 AND approval_status='approved'`,
       [req.params.school_id]
     );
     res.json({ users: result.rows });

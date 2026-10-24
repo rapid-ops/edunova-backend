@@ -29,7 +29,7 @@ const create = async (req, res) => {
       const schoolRes = await pool.query('SELECT name FROM schools WHERE id=$1', [school_id]);
       const schoolName = schoolRes.rows[0]?.name || 'School';
       const roles = Array.isArray(target_roles) && target_roles.length ? target_roles : null;
-      let q = 'SELECT phone FROM users WHERE school_id=$1 AND phone IS NOT NULL';
+      let q = `SELECT phone FROM users WHERE school_id=$1 AND phone IS NOT NULL AND approval_status='approved'`;
       const params = [school_id];
       if (roles) { q += ' AND role = ANY($2)'; params.push(roles); }
       const users = await pool.query(q, params);

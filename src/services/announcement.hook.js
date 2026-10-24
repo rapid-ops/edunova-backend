@@ -3,7 +3,7 @@ const { sendWhatsApp } = require('./whatsapp.service');
 
 const notifyAnnouncement = async ({ school_id, title, body, target_roles = [] }) => {
   try {
-    let query = `SELECT phone FROM users WHERE school_id=$1 AND phone IS NOT NULL`;
+    let query = `SELECT phone FROM users WHERE school_id=$1 AND phone IS NOT NULL AND approval_status='approved'`;
     const params = [school_id];
     if (target_roles.length) {
       query += ` AND role = ANY($2)`;

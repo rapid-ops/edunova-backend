@@ -18,7 +18,7 @@ router.get('/public', async (req, res) => {
   try {
     const r = await pool.query(
       `SELECT s.id, s.name, s.subdomain, s.logo_url, s.primary_color, s.tagline,
-              (SELECT COUNT(*)::int FROM users u WHERE u.school_id=s.id AND u.role='student') AS student_count
+              (SELECT COUNT(*)::int FROM users u WHERE u.school_id=s.id AND u.role='student' AND u.approval_status='approved') AS student_count
        FROM schools s WHERE s.is_active=true ORDER BY s.name LIMIT 200`
     );
     res.json({ schools: r.rows });
@@ -29,8 +29,8 @@ router.get('/public/:subdomain', async (req, res) => {
   try {
     const r = await pool.query(
       `SELECT s.id, s.name, s.subdomain, s.logo_url, s.primary_color, s.tagline,
-              (SELECT COUNT(*)::int FROM users u WHERE u.school_id=s.id AND u.role='student') AS student_count,
-              (SELECT COUNT(*)::int FROM users u WHERE u.school_id=s.id AND u.role='teacher') AS teacher_count,
+              (SELECT COUNT(*)::int FROM users u WHERE u.school_id=s.id AND u.role='student' AND u.approval_status='approved') AS student_count,
+              (SELECT COUNT(*)::int FROM users u WHERE u.school_id=s.id AND u.role='teacher' AND u.approval_status='approved') AS teacher_count,
               (SELECT COUNT(*)::int FROM courses c WHERE c.school_id=s.id AND c.is_published=true) AS course_count
        FROM schools s WHERE s.subdomain=$1 AND s.is_active=true`,
       [req.params.subdomain]
@@ -88,7 +88,7 @@ router.put('/:id/website', protect, authorize('super_admin','school_admin'), own
 router.get('/:id/students', protect, authorize('super_admin', 'school_admin'), ownSchool, async (req, res) => {
   try {
     const r = await pool.query(
-      "SELECT id, full_name, email, suspended_at, suspension_reason FROM users WHERE school_id=$1 AND role='student' ORDER BY full_name LIMIT 500",
+      "SELECT id, full_name, email, suspended_at, suspension_reason FROM users WHERE school_id=$1 AND role='student' AND approval_status='approved' ORDER BY full_name LIMIT 500",
       [req.params.id]
     );
     res.json({ students: r.rows });

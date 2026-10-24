@@ -104,13 +104,13 @@ const schoolAdminQuery = async (req, res) => {
     let dbResult = '';
     if (q.includes('not logged') || q.includes('inactive')) {
       const r = await pool.query(
-        `SELECT full_name,created_at FROM users WHERE school_id=$1 AND role='student' LIMIT 30`,
+        `SELECT full_name,created_at FROM users WHERE school_id=$1 AND role='student' AND approval_status='approved' LIMIT 30`,
         [school_id]
       );
       dbResult = `Students: ${JSON.stringify(r.rows)}`;
     } else if (q.includes('result') || q.includes('submitted')) {
       const r = await pool.query(
-        `SELECT u.full_name FROM users u WHERE u.school_id=$1 AND u.role='teacher' AND u.id NOT IN (SELECT DISTINCT teacher_id FROM courses WHERE school_id=$1) LIMIT 20`,
+        `SELECT u.full_name FROM users u WHERE u.school_id=$1 AND u.role='teacher' AND u.approval_status='approved' AND u.id NOT IN (SELECT DISTINCT teacher_id FROM courses WHERE school_id=$1) LIMIT 20`,
         [school_id]
       );
       dbResult = `Teachers without courses: ${JSON.stringify(r.rows)}`;
@@ -121,7 +121,7 @@ const schoolAdminQuery = async (req, res) => {
       );
       dbResult = `Class performance: ${JSON.stringify(r.rows)}`;
     } else {
-      const r = await pool.query(`SELECT COUNT(*) as students FROM users WHERE school_id=$1 AND role='student'`, [school_id]);
+      const r = await pool.query(`SELECT COUNT(*) as students FROM users WHERE school_id=$1 AND role='student' AND approval_status='approved'`, [school_id]);
       dbResult = `School stats: ${JSON.stringify(r.rows[0])}`;
     }
     const reply = await chat(
@@ -141,7 +141,7 @@ const predictDropout = async (req, res) => {
         (SELECT COUNT(*) FROM quiz_attempts qa WHERE qa.student_id=u.id) as quiz_count,
         (SELECT ROUND(AVG(score),1) FROM quiz_attempts qa WHERE qa.student_id=u.id) as avg_score,
         (SELECT COUNT(*) FROM submissions s WHERE s.student_id=u.id) as submission_count
-       FROM users u WHERE u.school_id=$1 AND u.role='student' LIMIT 50`,
+       FROM users u WHERE u.school_id=$1 AND u.role='student' AND u.approval_status='approved' LIMIT 50`,
       [school_id]
     );
     if (!students.rows.length) return res.json({ predictions: [] });
