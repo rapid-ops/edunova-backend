@@ -39,9 +39,9 @@ const schoolAdminQuery = async (req, res) => {
     const { text } = await buildSchoolContext(sid);
     const pageList = nav.length ? nav.map((p) => p.key + ' = ' + p.label).join('\n') : '(no pages available)';
     const system = 'You are the assistant inside Edunova, a school management system, talking to a school administrator.\n' + RULES
-      + '\n8. To point to a page, write [[page:KEY]] right after you mention it, using only a KEY from the page list. Never describe a page, button, tab or menu that is not in the list. If no page covers the request, say "That isn\'t available yet." and point to the closest page.\n\n'
+      + '\n8. To point to a page, write [[page:KEY]] right after you mention it, using only a KEY from the page list. Never describe a page, button, tab or menu that is not in the list. Pick the page whose label best matches what the person wants to do (for example adding or viewing students means the Students page, when it is in the list). Only if no page in the list is related, say "That isn\'t available yet." and point to the closest page.\n\n'
       + '<pages>\n' + pageList + '\n</pages>\n\n' + text;
-    const reply = await chat([...historyOf(req.body.history), { role: 'user', content: question }], system, 1200, { timeout: 25000 });
+    const reply = await chat([...historyOf(req.body.history), { role: 'user', content: question }], system, 1200, { timeout: 25000, temperature: 0.2 });
     if (!reply.trim()) return res.status(502).json({ error: BUSY });
     res.json({ reply: stripMarkers(reply, nav) });
   } catch (e) { failed(res, e, 'school-admin-query'); }
@@ -87,7 +87,7 @@ const teacherCopilot = async (req, res) => {
       + '\n</teacher_data>';
     const system = 'You are a teaching assistant inside Edunova, talking to a teacher.\n' + RULES.replace('data tags', 'teacher_data tags')
       + '\n8. You may write homework, lesson plans and explanations from your own teaching knowledge. For facts about students or the school, use only the data.\n\n' + data;
-    const reply = await chat([...historyOf(req.body.history), { role: 'user', content: question }], system, 1200, { timeout: 25000 });
+    const reply = await chat([...historyOf(req.body.history), { role: 'user', content: question }], system, 1200, { timeout: 25000, temperature: 0.2 });
     if (!reply.trim()) return res.status(502).json({ error: BUSY });
     res.json({ reply });
   } catch (e) { failed(res, e, 'teacher-copilot'); }

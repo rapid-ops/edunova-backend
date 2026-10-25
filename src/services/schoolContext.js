@@ -53,9 +53,7 @@ const buildSchoolContext = async (schoolId) => {
     safe('classes', async () => {
       const t = await pool.query(`SELECT COUNT(*)::int AS n FROM classes WHERE school_id=$1`, [sid]);
       const r = await pool.query(
-        `SELECT c.name, (SELECT COUNT(*)::int FROM student_classes sc JOIN users u ON u.id=sc.student_id
-           WHERE sc.class_id=c.id AND u.approval_status='approved') AS students
-         FROM classes c WHERE c.school_id=$1 ORDER BY c.grade_level, c.name LIMIT 10`, [sid]);
+        `SELECT c.name, c.grade_level FROM classes c WHERE c.school_id=$1 ORDER BY c.grade_level, c.name LIMIT 10`, [sid]);
       facts.classes = t.rows[0].n;
       return { total: t.rows[0].n, rows: r.rows };
     }),
@@ -108,7 +106,7 @@ const buildSchoolContext = async (schoolId) => {
   L.push('PEOPLE: ' + (people ? people.ok.student + ' students, ' + people.ok.teacher + ' teachers, ' + people.ok.parent + ' parents (approved accounts).' : NA));
   L.push('ACCOUNTS NOT YET APPROVED: ' + (people ? (people.other.length ? people.other.join('; ') + '.' : 'none yet') : NA));
   L.push('CLASSES: ' + (classes ? (classes.total
-    ? classes.total + ' in total. ' + classes.rows.map((c) => clean(c.name) + ' (' + c.students + ' students)').join('; ') + (classes.total > 10 ? '; and more' : '')
+    ? classes.total + ' in total. ' + classes.rows.map((c) => clean(c.name)).join('; ') + (classes.total > 10 ? '; and more' : '')
     : 'none yet') : NA));
   L.push('COURSES: ' + (courses ? (courses.total
     ? courses.total + ' in total, ' + courses.published + ' published, ' + (courses.total - courses.published) + ' draft. '
