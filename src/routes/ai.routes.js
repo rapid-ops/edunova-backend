@@ -13,14 +13,20 @@ const seeStudent = (staff) => async (req, res, next) => {
   } catch (e) { res.status(500).json({ error: 'Something went wrong. Please try again.' }); }
 };
 const staff = ['school_admin', 'teacher'];
+const admin = authorize('school_admin');
+
+// no AI call here, so these do not count toward the hourly question limit
+router.get('/school-admin-overview', protect, admin, a.schoolAdminOverview);
+router.get('/school-admin-chats', protect, admin, a.listChats);
+router.get('/school-admin-chats/:id', protect, admin, a.getChat);
+router.delete('/school-admin-chats/:id', protect, admin, a.deleteChat);
 
 router.use(aiLimiter);
 router.post('/generate-quiz', protect, authorize('teacher', 'school_admin'), c.generateQuiz);
 router.post('/generate-course', protect, authorize('teacher', 'school_admin'), c.generateCourse);
 router.post('/teacher-copilot', protect, authorize('teacher', 'school_admin'), a.teacherCopilot);
-router.post('/school-admin-query', protect, authorize('school_admin'), a.schoolAdminQuery);
-router.get('/school-admin-overview', protect, authorize('school_admin'), a.schoolAdminOverview);
-router.post('/predict-dropout', protect, authorize('school_admin'), c.predictDropout);
+router.post('/school-admin-query', protect, admin, a.schoolAdminQuery);
+router.post('/predict-dropout', protect, admin, c.predictDropout);
 router.get('/skill-passport/:student_id', protect, seeStudent(staff), c.getSkillPassport);
 router.post('/career-match', protect, seeStudent(staff), c.careerMatch);
 router.post('/learning-twin/update', protect, seeStudent(staff), c.updateLearningTwin);

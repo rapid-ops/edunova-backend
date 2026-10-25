@@ -131,3 +131,11 @@ const buildSchoolContext = async (schoolId) => {
 };
 
 module.exports = { buildSchoolContext, validateNav, stripMarkers, clean, safe, NA };
+
+module.exports.stripMarkers = (text, nav) => {
+  const ok = new Set(nav.map((n) => n.key));
+  return String(text).replace(/\[\[([^\]]{0,60})\]\]/g, (m, k) => {
+    const t = k.trim();
+    return t.startsWith('page:') && ok.has(t.slice(5).trim()) ? '[[page:' + t.slice(5).trim() + ']]' : '';
+  }).trim();
+};
