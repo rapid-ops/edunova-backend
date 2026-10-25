@@ -52,7 +52,7 @@ const createQuiz = async (course_id, s) => {
        time_limit_minutes, max_attempts, pass_percent, randomize_questions, awards_certificate, scheduled_at)
      VALUES ($1,$2,'quiz',$3,$4,100,$5,$6,$7,$8,$9,$10) RETURNING *`,
     [course_id, s.title, s.instructions, s.due_date, s.time_limit_minutes, s.max_attempts,
-     s.pass_percent, s.randomize_questions, s.awards_certificate]
+     s.pass_percent, s.randomize_questions, s.awards_certificate, s.scheduled_at]
   );
   return r.rows[0];
 };
@@ -63,7 +63,7 @@ const updateSettings = async (id, s) => {
        max_attempts=$6, pass_percent=$7, randomize_questions=$8, awards_certificate=$9, scheduled_at=$10
      WHERE id=$1 RETURNING *`,
     [id, s.title, s.instructions, s.due_date, s.time_limit_minutes, s.max_attempts,
-     s.pass_percent, s.randomize_questions, s.awards_certificate]
+     s.pass_percent, s.randomize_questions, s.awards_certificate, s.scheduled_at]
   );
   return r.rows[0];
 };
