@@ -64,5 +64,6 @@ app.use('/api/peer-reviews', require('./routes/peerreview.routes'));
 app.use('/api/school-admin', require('./routes/promote.routes'));
 app.use('/api/proof-of-work', require('./routes/proofofwork.routes'));
 app.use('/api/gamification', require('./routes/gamification.routes'));
+app.use('/api/portal', require('./routes/portaldashboard.routes'));
 app.use('/api/people', require('./routes/people.routes'));
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
