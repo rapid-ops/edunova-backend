@@ -11,12 +11,18 @@ const createUser = async ({ school_id, full_name, email, password, role }) => {
   return result.rows[0];
 };
 
-const findUserByEmail = async (email) => {
-  const result = await pool.query(
-    `SELECT * FROM users WHERE email = $1`,
-    [email]
-  );
-  return result.rows[0];
+const findUserByEmail = async (login) => {
+  const v = String(login == null ? '' : login).trim();
+  if (!v) return undefined;
+  if (v.includes('@')) {
+    const r = await pool.query(
+      `SELECT * FROM users WHERE lower(email) = lower($1) ORDER BY (email = $1) DESC, id LIMIT 1`,
+      [v]
+    );
+    return r.rows[0];
+  }
+  const r = await pool.query(`SELECT * FROM users WHERE login_id = $1 LIMIT 1`, [v.toUpperCase()]);
+  return r.rows[0];
 };
 
 module.exports = { createUser, findUserByEmail };

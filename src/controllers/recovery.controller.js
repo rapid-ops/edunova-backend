@@ -50,7 +50,7 @@ const completeReset = async (req, res) => {
   try {
     const hashed = await bcrypt.hash(password, 10);
     const r = await pool.query(
-      'UPDATE users SET password=$1, reset_token=NULL, reset_token_expires=NULL, login_attempts=0, locked_until=NULL WHERE reset_token=$2 AND reset_token_expires > NOW() RETURNING id',
+      'UPDATE users SET password=$1, reset_token=NULL, reset_token_expires=NULL, login_attempts=0, locked_until=NULL, password_set_at=NOW(), must_change_password=false, temp_password_expires=NULL WHERE reset_token=$2 AND reset_token_expires > NOW() RETURNING id',
       [hashed, sha(token)]
     );
     if (!r.rows[0]) return res.status(400).json({ error: BAD });

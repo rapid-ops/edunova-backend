@@ -24,7 +24,8 @@ const login = async (req, res) => {
       return res.status(401).json({ error: `Account locked. Try again in ${mins} minute(s)` });
     }
 
-    const match = await bcrypt.compare(password, user.password);
+    const pw = user.must_change_password ? String(password || '').trim().toUpperCase() : password;
+    const match = await bcrypt.compare(pw, user.password);
     if (!match) {
       const attempts = (user.login_attempts || 0) + 1;
       if (attempts >= MAX_ATTEMPTS) {
@@ -39,6 +40,9 @@ const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    if (user.must_change_password && user.temp_password_expires && new Date(user.temp_password_expires) < new Date()) {
+      return res.status(401).json({ error: 'Your one-time code has expired. Ask your school office for a new code.', code: 'CODE_EXPIRED' });
+    }
     const blocked = approvalBlock(user);
     if (blocked) return res.status(403).json(blocked);
 
@@ -46,9 +50,9 @@ const login = async (req, res) => {
     await pool.query(`UPDATE users SET login_attempts=0, locked_until=NULL WHERE id=$1`, [user.id]);
 
     const token = jwt.sign(
-      { id: user.id, role: user.role, school_id: user.school_id },
+      { id: user.id, role: user.role, school_id: user.school_id, ...(user.must_change_password ? { pwc: true } : {}) },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: user.must_change_password ? '1h' : '7d' }
     );
 
     const payload = {
@@ -59,8 +63,10 @@ const login = async (req, res) => {
         role: user.role,
         school_id: user.school_id,
         totp_enabled: user.totp_enabled,
+        login_id: user.login_id,
       },
       token,
+      must_change_password: !!user.must_change_password,
     };
 
     // If TOTP enabled, don't return full token yet — return partial token

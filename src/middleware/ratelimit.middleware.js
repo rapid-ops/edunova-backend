@@ -23,4 +23,6 @@ module.exports = {
   globalLimiter: mk(1500, 'Too many requests, please try again shortly', skip, userOrIp),
   loginLimiter: mk(10, 'Too many login attempts, try again later'),
   signupLimiter: mk(10, 'Too many signup attempts, try again later'),
+  peopleLimiter: mk(120, 'You are adding people very quickly. Wait a few minutes and try again.', undefined, userOrIp),
+  inviteLimiter: mk(60, 'Too many invitations sent. Wait a few minutes and try again.', undefined, userOrIp),
 };

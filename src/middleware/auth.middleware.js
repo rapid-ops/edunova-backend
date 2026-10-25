@@ -33,6 +33,9 @@ const protect = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
+    if (decoded.pwc && !/^\/api\/auth\/password\/\d+\/?$/.test(String(req.originalUrl).split('?')[0])) {
+      return res.status(403).json({ error: 'Choose your own password first.', code: 'PASSWORD_CHANGE_REQUIRED' });
+    }
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid token' });

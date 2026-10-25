@@ -92,24 +92,34 @@ const templates = {
       <p style="color:#6b7280;font-size:12px;margin-top:16px">If you did not ask for this, ignore this email. Your password will not change.</p>
       <p style="color:#9ca3af;font-size:11px;word-break:break-all">${esc(d.link)}</p>`, 'Edunova'),
   }),
+  invite: (d) => ({
+    subject: `${d.school_name} has added you to Edunova`,
+    html: wrap(`<h2 style="color:#1f2937">Hi ${esc(d.name)}</h2>
+      <p style="color:#4b5563">${esc(d.school_name)} has created your Edunova account. Tap the button to choose your password. The link works for 7 days and can be used once.</p>
+      <a href="${esc(d.link)}" style="display:block;margin-top:20px;background:#2563eb;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;text-align:center;font-weight:600">Choose my password</a>
+      <p style="color:#6b7280;font-size:12px;margin-top:16px">If you were not expecting this email, you can ignore it.</p>
+      <p style="color:#9ca3af;font-size:11px;word-break:break-all">${esc(d.link)}</p>`, esc(d.school_name)),
+  }),
 };
 
 async function sendEmail(to, template, data) {
   if (!RESEND_KEY) console.warn('RESEND_API_KEY not set, email skipped');
-  if (!RESEND_KEY || !to) return;
+  if (!RESEND_KEY || !to || /@no-email\.invalid$/i.test(String(to))) return false;
   const tmpl = templates[template];
-  if (!tmpl) return;
+  if (!tmpl) return false;
   const { subject, html } = tmpl(data);
   try {
-    if (process.env.GMAIL_REFRESH_TOKEN) { await require('./gmail.service').sendViaGmail({ to, subject, html }); return; }
+    if (process.env.GMAIL_REFRESH_TOKEN) { const sent = await require('./gmail.service').sendViaGmail({ to, subject, html }); return sent !== false; }
     const resp = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from: FROM, to, subject, html }),
     });
-    if (!resp.ok) console.error('Resend error', resp.status, (await resp.text()).slice(0, 300));
+    if (!resp.ok) { console.error('Resend error', resp.status, (await resp.text()).slice(0, 300)); return false; }
+    return true;
   } catch (err) {
     console.error('Email error:', err.message);
+    return false;
   }
 }
 

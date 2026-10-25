@@ -36,3 +36,17 @@ CREATE TABLE IF NOT EXISTS public.payment_attempts (
 );
 CREATE INDEX IF NOT EXISTS idx_payment_attempts_fee ON public.payment_attempts (fee_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_payments_paystack_ref ON public.payments (reference) WHERE method = 'paystack';
+
+-- lesson file uploads
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS file_path TEXT, ADD COLUMN IF NOT EXISTS file_name TEXT, ADD COLUMN IF NOT EXISTS file_type VARCHAR(20), ADD COLUMN IF NOT EXISTS file_size BIGINT;
+
+-- migrate19: sign-in IDs, one-time codes, invitation tracking
+ALTER TABLE users ADD COLUMN IF NOT EXISTS login_id VARCHAR(30);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS temp_password_expires TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS invited_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_set_at TIMESTAMP;
+CREATE UNIQUE INDEX IF NOT EXISTS users_login_id_key ON users (login_id) WHERE login_id IS NOT NULL;
+UPDATE users u SET login_id = 'EDU' || u.school_id || '-' || CASE u.role WHEN 'student' THEN 'S' ELSE 'T' END || LPAD(n.rn::text, 4, '0')
+FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY school_id, role ORDER BY id) AS rn FROM users WHERE role IN ('student','teacher') AND school_id IS NOT NULL) n
+WHERE u.id = n.id AND u.login_id IS NULL;
