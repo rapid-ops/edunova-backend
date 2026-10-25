@@ -50,3 +50,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_login_id_key ON users (login_id) WHERE l
 UPDATE users u SET login_id = 'EDU' || u.school_id || '-' || CASE u.role WHEN 'student' THEN 'S' ELSE 'T' END || LPAD(n.rn::text, 4, '0')
 FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY school_id, role ORDER BY id) AS rn FROM users WHERE role IN ('student','teacher') AND school_id IS NOT NULL) n
 WHERE u.id = n.id AND u.login_id IS NULL;
+
+-- migrate20: invitation email tracking for bulk import
+ALTER TABLE users ADD COLUMN IF NOT EXISTS invite_emailed_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS invite_tried_at TIMESTAMP;
+UPDATE users SET invite_emailed_at = invited_at, invite_tried_at = invited_at WHERE role = 'parent' AND invited_at IS NOT NULL AND invite_emailed_at IS NULL;

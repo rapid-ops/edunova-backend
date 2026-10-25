@@ -30,6 +30,7 @@ const readPerson = (b, emailRequired, prefix) => {
 const sendInvite = async (u, school, link) => {
   let emailed = false;
   try { emailed = (await sendEmail(u.email, 'invite', { name: u.full_name, school_name: school, link })) === true; } catch (e) { emailed = false; }
+  if (emailed && u.id) { try { await m.markEmailed(u.id, true); } catch (e) { /* ignore */ } }
   return { link, emailed };
 };
 
@@ -88,7 +89,7 @@ const create = async (req, res) => {
     if (out.main.link) result.invitation = await sendInvite(out.main.user, school, out.main.link);
     if (out.parent) {
       result.parent = { id: out.parent.id, full_name: out.parent.full_name, created: out.parent.created, linked: true, invitation: null };
-      if (out.parent.link) result.parent.invitation = await sendInvite({ full_name: out.parent.full_name, email: out.parent.email }, school, out.parent.link);
+      if (out.parent.link) result.parent.invitation = await sendInvite({ id: out.parent.id, full_name: out.parent.full_name, email: out.parent.email }, school, out.parent.link);
     }
     res.status(201).json(result);
   } catch (e) { oops(res); }
@@ -162,7 +163,7 @@ const linkParent = async (req, res) => {
     if (out.error === 'other') return res.status(409).json({ error: 'This email is already registered.', errors: { parent_email: 'This email is already registered.' } });
     if (out.error) return res.status(409).json({ error: 'That email belongs to someone in your school who is not a parent.' });
     const result = { parent: { id: out.id, full_name: out.full_name, created: out.created, linked: true, invitation: null } };
-    if (out.link) result.parent.invitation = await sendInvite({ full_name: out.full_name, email: out.email }, await m.schoolName(p.school_id), out.link);
+    if (out.link) result.parent.invitation = await sendInvite({ id: out.id, full_name: out.full_name, email: out.email }, await m.schoolName(p.school_id), out.link);
     res.status(out.created ? 201 : 200).json(result);
   } catch (e) { oops(res); }
 };

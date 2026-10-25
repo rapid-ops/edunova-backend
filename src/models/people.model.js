@@ -112,7 +112,7 @@ const nextLoginId = async (client, school_id, role) => {
   return `EDU${school_id}-${role === 'teacher' ? 'T' : 'S'}${String(r.rows[0].n).padStart(4, '0')}`;
 };
 
-const insertPerson = async (client, { school_id, role, full_name, email, phone }) => {
+const insertPerson = async (client, { school_id, role, full_name, email, phone, cost }) => {
   const login = role === 'student' || role === 'teacher';
   let login_id = null;
   let code = null;
@@ -120,9 +120,9 @@ const insertPerson = async (client, { school_id, role, full_name, email, phone }
   if (login) {
     login_id = await nextLoginId(client, school_id, role);
     code = newCode();
-    hash = await bcrypt.hash(code, 10);
+    hash = await bcrypt.hash(code, cost || 10);
   } else {
-    hash = await bcrypt.hash(newToken(), 10);
+    hash = await bcrypt.hash(newToken(), cost ? 4 : 10);
   }
   const address = email || `${login_id.toLowerCase()}${PLACEHOLDER}`;
   const r = await client.query(
@@ -140,7 +140,7 @@ const insertPerson = async (client, { school_id, role, full_name, email, phone }
   return { user: { ...safe, status: 'invited' }, login_id, code, expires_at: temp_password_expires, link: raw ? inviteLink(raw) : null };
 };
 
-const attachParent = async (client, school_id, student_id, parent) => {
+const attachParent = async (client, school_id, student_id, parent, cost) => {
   const found = await lookupEmail(client, parent.email);
   let pid;
   let created = null;
@@ -149,7 +149,7 @@ const attachParent = async (client, school_id, student_id, parent) => {
     if (found.role !== 'parent') return { error: 'notparent' };
     pid = found.id;
   } else {
-    created = await insertPerson(client, { school_id, role: 'parent', full_name: parent.full_name, email: parent.email, phone: parent.phone });
+    created = await insertPerson(client, { school_id, role: 'parent', full_name: parent.full_name, email: parent.email, phone: parent.phone, cost });
     pid = created.user.id;
   }
   await client.query(LINK_SQL, [pid, student_id]);
@@ -252,4 +252,21 @@ const linkParent = async (student, { parent_id, parent }) => {
 const unlinkParent = (parent_id, student_id) =>
   pool.query('DELETE FROM parent_student WHERE parent_id = $1 AND student_id = $2', [parent_id, student_id]);
 
-module.exports = { ROLES, schoolName, getOne, list, detail, createPerson, reinvite, updatePerson, linkParent, unlinkParent };
+const PENDING = `u.school_id = $1 AND u.role = 'parent' AND u.approval_status = 'approved' AND u.suspended_at IS NULL
+  AND u.invited_at IS NOT NULL AND u.password_set_at IS NULL AND u.invite_emailed_at IS NULL
+  AND u.email NOT LIKE '%${PLACEHOLDER}'`;
+
+const markEmailed = (id, ok = true) =>
+  pool.query('UPDATE users SET invite_tried_at = NOW(), invite_emailed_at = CASE WHEN $2::boolean THEN NOW() ELSE invite_emailed_at END WHERE id = $1', [id, ok]);
+
+const pendingList = async (school_id, limit) => {
+  const r = await pool.query(`SELECT u.id, u.full_name, u.email, u.school_id, u.role FROM users u WHERE ${PENDING} ORDER BY u.invite_tried_at NULLS FIRST, u.id LIMIT ${Math.min(Number(limit) || 20, 20)}`, [school_id]);
+  return r.rows;
+};
+
+const pendingCount = async (school_id) => {
+  const r = await pool.query(`SELECT COUNT(*)::int AS n FROM users u WHERE ${PENDING}`, [school_id]);
+  return r.rows[0].n;
+};
+
+module.exports = { ROLES, schoolName, getOne, list, detail, createPerson, reinvite, updatePerson, linkParent, unlinkParent, insertPerson, attachParent, markEmailed, pendingList, pendingCount };
