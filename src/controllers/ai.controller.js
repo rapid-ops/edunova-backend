@@ -42,7 +42,7 @@ const generateCourse = async (req, res) => {
     } else if (source_type === 'pdf_text' && source_url) {
       contentPrompt = source_url.slice(0, 3000);
     }
-    const sid = school_id || req.user.school_id;
+    const sid = req.user.school_id;
     const tid = req.user.id;
     const gen = await pool.query(
       `INSERT INTO ai_course_generations (school_id,created_by,prompt,source_type,source_url,status) VALUES ($1,$2,$3,$4,$5,'processing') RETURNING *`,
@@ -135,7 +135,7 @@ const schoolAdminQuery = async (req, res) => {
 
 const predictDropout = async (req, res) => {
   try {
-    const school_id = req.body.school_id || req.user.school_id;
+    const school_id = req.user.school_id;
     const students = await pool.query(
       `SELECT u.id,u.full_name,u.created_at,
         (SELECT COUNT(*) FROM quiz_attempts qa WHERE qa.student_id=u.id) as quiz_count,

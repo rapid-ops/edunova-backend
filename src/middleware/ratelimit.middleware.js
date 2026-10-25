@@ -17,7 +17,9 @@ const userOrIp = (req) => {
 };
 const mk = (limit, error, s, keyGenerator) => rateLimit({
   ...(keyGenerator ? { keyGenerator } : {}), windowMs: 15 * 60 * 1000, limit, standardHeaders: true, legacyHeaders: false, skip: s, message: { error } });
+const aiLimiter = rateLimit({ keyGenerator: userOrIp, windowMs: 60 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false, message: { error: 'You have reached the limit of 30 questions for this hour. Please try again a little later.' } });
 module.exports = {
+  aiLimiter,
   recoveryLimiter: mk(5, 'Too many reset requests, try again in a few minutes'),
   resetLimiter: mk(10, 'Too many attempts, try again in a few minutes'),
   globalLimiter: mk(1500, 'Too many requests, please try again shortly', skip, userOrIp),
