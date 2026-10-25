@@ -20,7 +20,8 @@ const lessonWithSchool = async (id) => {
   return r.rows[0] || null;
 };
 
-const strip = (l) => { const { course_school_id, ...rest } = l; return rest; };
+const strip = (l) => { const { course_school_id, file_path, ...rest } = l; return rest; };
+const pub = (l) => { const { file_path, ...rest } = l; return rest; };
 
 const cleanVideoUrl = (v) => {
   if (v === undefined || v === null || String(v).trim() === '') return null;
@@ -68,7 +69,7 @@ const list = async (req, res) => {
     const course = await courseSchool(req.params.course_id);
     if (!course) return res.status(404).json({ error: 'Course not found' });
     if (!sameSchool(req.user, course.school_id)) return res.status(403).json({ error: 'Access denied' });
-    const lessons = await getLessonsByCourse(req.params.course_id);
+    const lessons = (await getLessonsByCourse(req.params.course_id)).map(pub);
     if (!isStudent(req.user)) return res.json({ lessons });
     const enrolled = lessons.some(isDripped) ? await enrolledAt(req.user.id, Number(req.params.course_id)) : null;
     const now = new Date();
@@ -76,7 +77,7 @@ const list = async (req, res) => {
       if (!isDripped(l)) return l;
       const at = enrolled ? unlockAt(enrolled, l) : null;
       if (at && at <= now) return l;
-      const { content, video_url, file_url, ...rest } = l;
+      const { content, video_url, file_url, file_name, file_type, file_size, ...rest } = l;
       return { ...rest, locked: true, unlocks_at: at };
     });
     res.json({ lessons: out });
@@ -139,6 +140,9 @@ const remove = async (req, res) => {
     const existing = await lessonWithSchool(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Lesson not found' });
     if (!sameSchool(req.user, existing.course_school_id)) return res.status(403).json({ error: 'Access denied' });
+    if (existing.file_path) {
+      try { require('./lessonfile.controller').removeStored(existing.file_path).catch((e) => console.error('File cleanup failed:', e.message)); } catch (e) { console.error('File cleanup failed:', e.message); }
+    }
     await deleteLesson(existing.id);
     res.json({ message: 'Lesson deleted' });
   } catch (err) {

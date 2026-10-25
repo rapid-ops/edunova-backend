@@ -8,4 +8,10 @@ router.get('/:id', protect, get);
 router.put('/:id', protect, authorize('super_admin','school_admin','teacher'), update);
 router.delete('/:id', protect, authorize('super_admin','school_admin'), remove);
 
+const f = require('../controllers/lessonfile.controller');
+const staffOnly = authorize('super_admin', 'school_admin', 'teacher');
+router.post('/:id/file', protect, staffOnly, f.guardManage, f.upload);
+router.get('/:id/file', protect, f.view);
+router.delete('/:id/file', protect, staffOnly, f.guardManage, f.remove);
+
 module.exports = router;
