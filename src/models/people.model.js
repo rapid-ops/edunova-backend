@@ -28,7 +28,7 @@ const STATUS = `CASE
 const COLS = `u.id, u.school_id, u.full_name, u.email, u.phone, u.role, u.login_id, u.created_at, u.suspension_reason,
   ${STATUS} AS status,
   (u.must_change_password AND u.temp_password_expires IS NOT NULL AND u.temp_password_expires < NOW()) AS code_expired,
-  u.temp_password_expires`;
+  u.temp_password_expires AS code_expires_at`;
 const LINK_SQL = `INSERT INTO parent_student (parent_id, student_id)
   SELECT $1::int, $2::int WHERE NOT EXISTS (SELECT 1 FROM parent_student WHERE parent_id = $1::int AND student_id = $2::int)`;
 
@@ -136,7 +136,8 @@ const insertPerson = async (client, { school_id, role, full_name, email, phone }
     await client.query(
       `UPDATE users SET reset_token = $1, reset_token_expires = NOW() + INTERVAL '${LINK_DAYS} days' WHERE id = $2`, [sha(raw), r.rows[0].id]);
   }
-  return { user: shape(r.rows[0]), login_id, code, expires_at: r.rows[0].temp_password_expires, link: raw ? inviteLink(raw) : null };
+  const { temp_password_expires, ...safe } = shape(r.rows[0]);
+  return { user: { ...safe, status: 'invited' }, login_id, code, expires_at: temp_password_expires, link: raw ? inviteLink(raw) : null };
 };
 
 const attachParent = async (client, school_id, student_id, parent) => {

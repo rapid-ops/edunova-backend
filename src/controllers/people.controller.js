@@ -61,6 +61,7 @@ const list = async (req, res) => {
 
 const create = async (req, res) => {
   try {
+    if (req.user.role === 'super_admin' && !validId(req.body && req.body.school_id)) return res.status(400).json({ error: 'Choose a school first.' });
     const school_id = schoolForCreate(req, res);
     if (school_id == null) return;
     const b = req.body || {};
