@@ -11,15 +11,18 @@ router.get('/inbox/:user_id', protect, async (req, res) => {
   if (Number(user_id) !== me(req)) return res.status(403).json({ error: 'Access denied' });
   try {
     const result = await pool.query(
-      `SELECT DISTINCT ON (other_user)
-        CASE WHEN sender_id=$1 THEN receiver_id ELSE sender_id END as other_user,
-        m.content, m.created_at, m.is_read,
-        u.full_name, u.role
-       FROM messages m
-       JOIN users u ON u.id = CASE WHEN sender_id=$1 THEN receiver_id ELSE sender_id END
-       WHERE sender_id=$1 OR receiver_id=$1
-       ORDER BY other_user, m.created_at DESC`,
-      [user_id]
+      `SELECT * FROM (
+         SELECT DISTINCT ON (other_user)
+           CASE WHEN m.sender_id=$1 THEN m.receiver_id ELSE m.sender_id END AS other_user,
+           m.content, m.created_at, m.is_read, m.sender_id,
+           u.full_name, u.role,
+           (SELECT COUNT(*)::int FROM messages x WHERE x.sender_id=u.id AND x.receiver_id=$1 AND x.is_read IS NOT TRUE) AS unread_count
+         FROM messages m
+         JOIN users u ON u.id = CASE WHEN m.sender_id=$1 THEN m.receiver_id ELSE m.sender_id END
+         WHERE m.sender_id=$1 OR m.receiver_id=$1
+         ORDER BY other_user, m.created_at DESC
+       ) t ORDER BY created_at DESC`,
+      [me(req)]
     );
     res.json({ conversations: result.rows });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -53,7 +56,6 @@ router.patch('/read/:sender_id/:receiver_id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// REST fallback for send (when socket unavailable)
 router.post('/', protect, async (req, res) => {
   const { receiver_id, content } = req.body;
   if (!validId(receiver_id)) return res.status(400).json({ error: 'receiver_id required' });
