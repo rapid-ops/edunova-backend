@@ -76,4 +76,5 @@ const adminAnswer = async (question_id, answer) => {
   return r.rows[0];
 };
 
-module.exports = { create, getByCode, getByTeacher, close, askQuestion, getQuestions, teacherAnswer, adminAnswer };
+const getById = async (id) => { const r = await pool.query(`SELECT * FROM class_sessions WHERE id=$1`, [id]); return r.rows[0]; };
+module.exports = { create, getByCode, getByTeacher, close, askQuestion, getQuestions, teacherAnswer, adminAnswer, getById };
