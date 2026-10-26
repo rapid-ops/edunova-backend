@@ -2,6 +2,7 @@ const pool = require('../config/db');
 const m = require('../models/announcement.model');
 const { validId, sameSchool, canSeeStudent, getUser } = require('../utils/access');
 const { sendWhatsApp } = require('../services/whatsapp.service');
+const { sendEmail } = require('../services/email.service');
 
 const STAFF = ['super_admin', 'school_admin', 'teacher'];
 
@@ -24,20 +25,20 @@ const create = async (req, res) => {
       class_id: validId(class_id) ? Number(class_id) : null,
     });
 
-    // WhatsApp to targeted users
     try {
       const schoolRes = await pool.query('SELECT name FROM schools WHERE id=$1', [school_id]);
       const schoolName = schoolRes.rows[0]?.name || 'School';
       const roles = Array.isArray(target_roles) && target_roles.length ? target_roles : null;
-      let q = `SELECT phone FROM users WHERE school_id=$1 AND phone IS NOT NULL AND approval_status='approved'`;
+      let q = 'SELECT phone, email FROM users WHERE school_id=$1 AND (phone IS NOT NULL OR email IS NOT NULL)';
       const params = [school_id];
       if (roles) { q += ' AND role = ANY($2)'; params.push(roles); }
       const users = await pool.query(q, params);
       for (const u of users.rows) {
-        sendWhatsApp(u.phone, `📢 ${schoolName}\n${title}\n\n${body || ''}`);
+        if (u.phone) sendWhatsApp(u.phone, `📢 ${schoolName}\n${title}\n\n${body || ''}`);
+        if (u.email) sendEmail(u.email, 'announcement', { school_name: schoolName, title, body: body || '' });
       }
     } catch (e) {
-      console.error('Announcement WA error:', e.message);
+      console.error('Announcement notify error:', e.message);
     }
 
     res.status(201).json({ announcement: a });
@@ -51,9 +52,7 @@ const forStudent = async (req, res) => {
     const access = await canSeeStudent(req.user, req.params.student_id, ['school_admin', 'teacher']);
     if (access.error) return res.status(access.code).json({ error: access.error });
     res.json({ announcements: await m.getForStudent(access.student.id, access.student.school_id) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 const forTeacher = async (req, res) => {
@@ -63,9 +62,7 @@ const forTeacher = async (req, res) => {
     if (!target || target.role !== 'teacher') return res.status(404).json({ error: 'Teacher not found' });
     if (!sameSchool(req.user, target.school_id)) return res.status(403).json({ error: 'Access denied' });
     res.json({ announcements: await m.getForTeacher(target.id, target.school_id) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 const bySchool = async (req, res) => {
@@ -73,9 +70,7 @@ const bySchool = async (req, res) => {
     if (!validId(req.params.school_id)) return res.status(404).json({ error: 'School not found' });
     if (!sameSchool(req.user, req.params.school_id)) return res.status(403).json({ error: 'Access denied' });
     res.json({ announcements: await m.getBySchool(req.params.school_id) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 const remove = async (req, res) => {
@@ -86,9 +81,7 @@ const remove = async (req, res) => {
     if (!sameSchool(req.user, a.rows[0].school_id)) return res.status(403).json({ error: 'Access denied' });
     await pool.query('DELETE FROM announcements WHERE id=$1', [req.params.id]);
     res.json({ message: 'Deleted' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
 module.exports = { create, forStudent, forTeacher, bySchool, remove };
