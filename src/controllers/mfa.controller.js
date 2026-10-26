@@ -60,7 +60,7 @@ const verifyMFALogin = async (req, res) => {
       { expiresIn: '7d' }
     );
     res.json({
-      user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role, school_id: user.school_id, totp_enabled: true },
+      user: { id: user.id, full_name: user.full_name, avatar_url: user.avatar_url || null, email: user.email, role: user.role, school_id: user.school_id, totp_enabled: true },
       token,
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -102,7 +102,7 @@ const useBackupCode = async (req, res) => {
       { expiresIn: '7d' }
     );
     res.json({
-      user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role, school_id: user.school_id, totp_enabled: true },
+      user: { id: user.id, full_name: user.full_name, avatar_url: user.avatar_url || null, email: user.email, role: user.role, school_id: user.school_id, totp_enabled: true },
       token,
     });
   } catch (err) { res.status(500).json({ error: err.message }); }

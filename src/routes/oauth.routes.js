@@ -43,7 +43,7 @@ router.post('/google', async (req, res) => {
       { expiresIn: '7d' }
     );
     res.json({
-      user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role, school_id: user.school_id },
+      user: { id: user.id, full_name: user.full_name, avatar_url: user.avatar_url || null, email: user.email, role: user.role, school_id: user.school_id },
       token,
     });
   } catch (err) {

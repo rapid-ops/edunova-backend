@@ -19,6 +19,7 @@ const mk = (limit, error, s, keyGenerator) => rateLimit({
   ...(keyGenerator ? { keyGenerator } : {}), windowMs: 15 * 60 * 1000, limit, standardHeaders: true, legacyHeaders: false, skip: s, message: { error } });
 const aiLimiter = rateLimit({ keyGenerator: userOrIp, windowMs: 60 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false, message: { error: 'You have reached the limit of 30 questions for this hour. Please try again a little later.' } });
 module.exports = {
+  avatarLimiter: mk(20, 'You have changed your photo several times. Wait a few minutes and try again.', undefined, userOrIp),
   aiLimiter,
   recoveryLimiter: mk(5, 'Too many reset requests, try again in a few minutes'),
   resetLimiter: mk(10, 'Too many attempts, try again in a few minutes'),
@@ -28,4 +29,5 @@ module.exports = {
   peopleLimiter: mk(120, 'You are adding people very quickly. Wait a few minutes and try again.', undefined, userOrIp),
   inviteLimiter: mk(60, 'Too many invitations sent. Wait a few minutes and try again.', undefined, userOrIp),
   importLimiter: mk(20, 'You have imported several files in a row. Wait a few minutes and try again.', undefined, userOrIp),
+  bulkLimiter: mk(30, 'You are adding students very quickly. Wait a few minutes and try again.', undefined, userOrIp),
 };

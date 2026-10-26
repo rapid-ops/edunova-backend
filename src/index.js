@@ -50,6 +50,7 @@ app.use('/api/audit-logs', require('./routes/auditlog.routes'));
 app.use('/api/stats', require('./routes/stats.routes'));
 app.use('/api/dashboard', require('./routes/dashboard.routes'));
 app.use('/api/finance', require('./routes/finance.routes'));
+app.use('/api/avatar', require('./routes/avatar.routes'));
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 5000;
@@ -66,4 +67,7 @@ app.use('/api/proof-of-work', require('./routes/proofofwork.routes'));
 app.use('/api/gamification', require('./routes/gamification.routes'));
 app.use('/api/portal', require('./routes/portaldashboard.routes'));
 app.use('/api/people', require('./routes/people.routes'));
+app.use('/api/classes', require('./routes/class.routes'));
+app.use('/api/student-classes', require('./routes/studentclass.routes'));
+app.use('/api/course-assignments', require('./routes/courseassignment.routes'));
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

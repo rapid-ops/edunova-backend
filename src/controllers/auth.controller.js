@@ -64,6 +64,7 @@ const login = async (req, res) => {
         school_id: user.school_id,
         totp_enabled: user.totp_enabled,
         login_id: user.login_id,
+        avatar_url: user.avatar_url || null,
       },
       token,
       must_change_password: !!user.must_change_password,
