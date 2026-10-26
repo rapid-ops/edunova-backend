@@ -58,3 +58,6 @@ UPDATE users SET invite_emailed_at = invited_at, invite_tried_at = invited_at WH
 
 -- migrate22
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_public_id TEXT;
+
+-- profile photo: stored public id for cleanup
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_public_id TEXT;
