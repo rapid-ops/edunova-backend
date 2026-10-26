@@ -1,7 +1,9 @@
 const pool = require('../config/db');
+const ROLES = ['student', 'teacher', 'parent', 'school_admin'];
 
 const create = async ({ school_id, created_by, title, body, target_roles, class_id, course_id }) => {
-  const role_str = Array.isArray(target_roles) && target_roles.length ? target_roles.join(',') : 'all';
+  const roles = Array.isArray(target_roles) ? target_roles.filter((r) => ROLES.includes(r)) : [];
+  const role_str = roles.length ? roles.join(',') : (class_id ? 'class' : 'all');
   const r = await pool.query(
     `INSERT INTO announcements (school_id,created_by,title,body,target_role,class_id,course_id)
      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
@@ -12,43 +14,36 @@ const create = async ({ school_id, created_by, title, body, target_roles, class_
 
 const getForStudent = async (student_id, school_id) => {
   const r = await pool.query(`
-    SELECT a.*, u.full_name as author_name, u.role as author_role
-    FROM announcements a
-    JOIN users u ON u.id = a.created_by
-    WHERE a.school_id = $1
-    AND (
-      a.target_role = 'all'
-      OR a.target_role LIKE '%student%'
-      OR (a.class_id IN (SELECT class_id FROM student_classes WHERE student_id=$2))
-      OR (a.course_id IN (SELECT course_id FROM enrollments WHERE student_id=$2))
+    SELECT a.*, u.full_name AS author_name, u.role AS author_role
+    FROM announcements a JOIN users u ON u.id=a.created_by
+    WHERE a.school_id=$1 AND (
+      (a.class_id IS NULL AND a.course_id IS NULL AND (a.target_role='all' OR a.target_role LIKE '%student%'))
+      OR (a.class_id IN (SELECT class_id FROM student_classes WHERE student_id=$2)
+          AND (a.target_role IN ('all','class') OR a.target_role LIKE '%student%'))
+      OR a.course_id IN (SELECT course_id FROM enrollments WHERE student_id=$2)
     )
-    ORDER BY a.created_at DESC LIMIT 50
-  `, [school_id, student_id]);
+    ORDER BY a.created_at DESC LIMIT 50`, [school_id, student_id]);
   return r.rows;
 };
 
 const getForTeacher = async (teacher_id, school_id) => {
-  const r = await pool.query(
-    `SELECT a.*, u.full_name as author_name
-     FROM announcements a
-     JOIN users u ON u.id = a.created_by
-     WHERE a.school_id = $1
-     AND (a.target_role = 'all' OR a.target_role LIKE '%teacher%' OR a.created_by = $2)
-     ORDER BY a.created_at DESC LIMIT 50`,
-    [school_id, teacher_id]
-  );
+  const r = await pool.query(`
+    SELECT a.*, u.full_name AS author_name
+    FROM announcements a JOIN users u ON u.id=a.created_by
+    WHERE a.school_id=$1 AND (
+      (a.class_id IS NULL AND (a.target_role='all' OR a.target_role LIKE '%teacher%'))
+      OR a.created_by=$2
+      OR a.class_id IN (SELECT id FROM classes WHERE teacher_id=$2
+                        UNION SELECT class_id FROM courses WHERE teacher_id=$2 AND class_id IS NOT NULL)
+    )
+    ORDER BY a.created_at DESC LIMIT 50`, [school_id, teacher_id]);
   return r.rows;
 };
 
 const getBySchool = async (school_id) => {
   const r = await pool.query(
-    `SELECT a.*, u.full_name as author_name
-     FROM announcements a
-     JOIN users u ON u.id = a.created_by
-     WHERE a.school_id = $1
-     ORDER BY a.created_at DESC`,
-    [school_id]
-  );
+    `SELECT a.*, u.full_name AS author_name FROM announcements a JOIN users u ON u.id=a.created_by
+     WHERE a.school_id=$1 ORDER BY a.created_at DESC`, [school_id]);
   return r.rows;
 };
 
