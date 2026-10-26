@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
+const http = require('http');
+const { Server } = require('socket.io');
 
 const { globalLimiter } = require('./middleware/ratelimit.middleware');
 const ORIGINS = [process.env.FRONTEND_URL, 'https://edunova-frontend-gkaj.vercel.app', 'https://edunova-backend-2x7h.onrender.com', 'http://localhost:3000', 'http://localhost:5000'].filter(Boolean);
@@ -24,10 +26,21 @@ const routes = [
   'timetable','transcript','upload','virtuallab'
 ];
 
+// Correct plural paths. The old paths stay live so nothing that calls them breaks.
+const ALIASES = {
+  class: ['classes'],
+  classsession: ['class-sessions'],
+  studentclass: ['student-classes'],
+  progress: ['progress'],
+  batch: ['batches'],
+  competency: ['competencies'],
+  curriculum: ['curricula'],
+};
 routes.forEach(name => {
   try {
     const router = require(`./routes/${name}.routes`);
     app.use(`/api/${name}s`, router);
+    (ALIASES[name] || []).forEach((a) => app.use(`/api/${a}`, router));
   } catch (e) {
     console.warn(`Route load failed: ${name} —`, e.message);
   }
@@ -71,4 +84,8 @@ app.use('/api/people', require('./routes/people.routes'));
 app.use('/api/classes', require('./routes/class.routes'));
 app.use('/api/student-classes', require('./routes/studentclass.routes'));
 app.use('/api/course-assignments', require('./routes/courseassignment.routes'));
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: ORIGINS, credentials: true } });
+app.set('io', io);
+require('./socket')(io);
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
