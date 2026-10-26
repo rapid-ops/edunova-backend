@@ -116,4 +116,21 @@ const adminAnswer = async (req, res) => {
   } catch (err) { fail(res, err); }
 };
 
-module.exports = { create, join, byTeacher, close, ask, questions, teacherAnswer, adminAnswer };
+const myCourses = async (req, res) => {
+  try {
+    const u = req.user;
+    let r;
+    if (u.role === 'teacher') {
+      r = await pool.query(
+        `SELECT id, title FROM courses WHERE school_id=$1 AND (teacher_id=$2
+           OR id IN (SELECT course_id FROM course_assignments WHERE teacher_id=$2)) ORDER BY title`, [u.school_id, u.id]);
+    } else {
+      const sid = u.role === 'super_admin' ? req.query.school_id : u.school_id;
+      if (!validId(sid)) return res.json({ courses: [] });
+      r = await pool.query(`SELECT id, title FROM courses WHERE school_id=$1 ORDER BY title`, [sid]);
+    }
+    res.json({ courses: r.rows });
+  } catch (err) { fail(res, err); }
+};
+
+module.exports = { create, join, byTeacher, close, ask, questions, teacherAnswer, adminAnswer, myCourses };

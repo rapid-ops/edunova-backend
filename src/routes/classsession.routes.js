@@ -1,8 +1,9 @@
 const router = require('express').Router();
 const { protect, authorize } = require('../middleware/auth.middleware');
-const { create, join, byTeacher, close, ask, questions, teacherAnswer, adminAnswer } = require('../controllers/classsession.controller');
+const { create, join, byTeacher, close, ask, questions, teacherAnswer, adminAnswer, myCourses } = require('../controllers/classsession.controller');
 const staff = authorize('super_admin', 'school_admin', 'teacher');
 router.post('/', protect, staff, create);
+router.get('/my-courses', protect, staff, myCourses);
 router.get('/join/:code', protect, join);
 router.get('/teacher/:teacher_id', protect, staff, byTeacher);
 router.put('/:id/close', protect, staff, close);
