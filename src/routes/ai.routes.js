@@ -4,6 +4,7 @@ const { aiLimiter } = require('../middleware/ratelimit.middleware');
 const { canSeeStudent } = require('../utils/access');
 const c = require('../controllers/ai.controller');
 const a = require('../controllers/aiassistant.controller');
+const qz = require('../controllers/aiquiz.controller');
 
 const seeStudent = (staff) => async (req, res, next) => {
   try {
@@ -22,7 +23,7 @@ router.get('/school-admin-chats/:id', protect, admin, a.getChat);
 router.delete('/school-admin-chats/:id', protect, admin, a.deleteChat);
 
 router.use(aiLimiter);
-router.post('/generate-quiz', protect, authorize('teacher', 'school_admin'), c.generateQuiz);
+router.post('/generate-quiz', protect, authorize('teacher', 'school_admin'), qz.generateQuiz);
 router.post('/generate-course', protect, authorize('teacher', 'school_admin'), c.generateCourse);
 router.post('/teacher-copilot', protect, authorize('teacher', 'school_admin'), a.teacherCopilot);
 router.post('/school-admin-query', protect, admin, a.schoolAdminQuery);
