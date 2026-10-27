@@ -51,6 +51,7 @@ app.use('/api/auth', require('./routes/recovery.routes'));
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/auth', require('./routes/oauth.routes'));
 app.use('/api/auth', require('./routes/signup.routes'));
+app.use('/api/register', require('./routes/schoolregistration.routes'));
 app.use('/api/approvals', require('./routes/approval.routes'));
 app.use('/api/mfa', require('./routes/mfa.routes'));
 app.use('/api/api-keys', require('./routes/apikey.routes'));
