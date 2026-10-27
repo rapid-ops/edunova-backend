@@ -64,7 +64,7 @@ app.use('/api/stats', require('./routes/stats.routes'));
 app.use('/api/dashboard', require('./routes/dashboard.routes'));
 app.use('/api/finance', require('./routes/finance.routes'));
 app.use('/api/avatar', require('./routes/avatar.routes'));
-app.use('/api/profile-photo', require('./routes/imageupload.routes'));
+try { app.use('/api/profile-photo', require('./routes/imageupload.routes')); } catch (e) { console.warn('Route load failed: profile-photo -', e.message); }
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 5000;
