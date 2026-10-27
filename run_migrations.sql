@@ -61,3 +61,71 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_public_id TEXT;
 
 -- profile photo: stored public id for cleanup
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_public_id TEXT;
+
+-- migrate21: class teacher/room/capacity, course self-enrollment flag, student_classes rebuilt with integer ids
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='student_classes' AND column_name='student_id' AND data_type='uuid') THEN
+    IF (SELECT COUNT(*) FROM student_classes) > 0 THEN
+      RAISE EXCEPTION 'student_classes has rows - not dropping';
+    END IF;
+    DROP TABLE student_classes;
+  END IF;
+END $$;
+CREATE TABLE IF NOT EXISTS student_classes (
+  id SERIAL PRIMARY KEY,
+  student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  school_id INTEGER REFERENCES schools(id) ON DELETE CASCADE,
+  enrolled_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(student_id, class_id)
+);
+CREATE INDEX IF NOT EXISTS student_classes_class_idx ON student_classes(class_id);
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS teacher_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS room VARCHAR(100);
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS capacity INTEGER CHECK (capacity IS NULL OR capacity > 0);
+ALTER TABLE courses ADD COLUMN IF NOT EXISTS allow_self_enrollment BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE courses ALTER COLUMN teacher_id DROP NOT NULL;
+
+
+-- Worker 7: approval columns (earlier work, migrate14)
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) NOT NULL DEFAULT 'approved';
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS approved_by INTEGER REFERENCES public.users(id) ON DELETE SET NULL;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;
+CREATE INDEX IF NOT EXISTS idx_users_pending ON public.users (school_id) WHERE approval_status = 'pending';
+
+-- Worker 7: school registration details and email confirmation
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS school_type VARCHAR(60);
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS state VARCHAR(60);
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS lga VARCHAR(100);
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
+UPDATE public.users SET email_verified_at = COALESCE(created_at, NOW()) WHERE email_verified_at IS NULL AND approval_status <> 'unverified';
+DO $$
+DECLARE c RECORD;
+BEGIN
+  FOR c IN SELECT conname FROM pg_constraint WHERE conrelid = 'public.users'::regclass AND contype = 'c' AND pg_get_constraintdef(oid) ILIKE '%approval_status%' LOOP
+    EXECUTE 'ALTER TABLE public.users DROP CONSTRAINT ' || quote_ident(c.conname);
+  END LOOP;
+END $$;
+ALTER TABLE public.users ADD CONSTRAINT users_approval_status_check CHECK (approval_status IN ('unverified','pending','approved','rejected'));
+CREATE TABLE IF NOT EXISTS public.signup_verifications (
+  id SERIAL PRIMARY KEY,
+  purpose VARCHAR(10) NOT NULL CHECK (purpose IN ('school','user')),
+  email VARCHAR(255) NOT NULL,
+  code_hash VARCHAR(128) NOT NULL,
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  expires_at TIMESTAMPTZ NOT NULL,
+  last_sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_signup_verif_email ON public.signup_verifications (lower(email), purpose) WHERE used_at IS NULL;
+CREATE TABLE IF NOT EXISTS public.signup_email_sends (
+  id SERIAL PRIMARY KEY,
+  email_lc VARCHAR(255) NOT NULL,
+  purpose VARCHAR(10) NOT NULL,
+  sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_signup_sends_email ON public.signup_email_sends (email_lc, sent_at);

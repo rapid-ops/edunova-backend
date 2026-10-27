@@ -69,6 +69,10 @@ const templates = {
     subject: `Account Suspended`,
     html: wrap(`<h2>Account Suspended</h2><p>${d.reason || 'Your account has been suspended.'}</p>`, d.school_name),
   }),
+  verification_code: (d) => ({
+    subject: `Your Edunova code is ${esc(d.code)}`,
+    html: wrap(`<h2>Your confirmation code</h2><p>Your Edunova code is <strong style="font-size:24px;letter-spacing:4px">${esc(d.code)}</strong>.</p><p>It expires in 15 minutes. If you did not ask for this, ignore this email.</p>`, 'Edunova'),
+  }),
   account_approved: (d) => ({
     subject: `Your account at ${d.school_name} is approved`,
     html: wrap(`<h2>Account Approved</h2><p>Hi ${esc(d.name)}, your school administrator approved your account. You can sign in now.</p>

@@ -31,3 +31,9 @@ module.exports = {
   importLimiter: mk(20, 'You have imported several files in a row. Wait a few minutes and try again.', undefined, userOrIp),
   bulkLimiter: mk(30, 'You are adding students very quickly. Wait a few minutes and try again.', undefined, userOrIp),
 };
+
+// Registration with email codes (Worker 7)
+const regEmailKey = (req) => 'email:' + (String((req.body && req.body.email) || '').trim().toLowerCase() || 'ip:' + ipKeyGenerator(req.ip));
+module.exports.regStartIpLimiter = mk(10, 'Too many attempts. Please wait a few minutes and try again.');
+module.exports.regEmailLimiter = mk(5, 'Too many attempts for this email. Please wait a few minutes and try again.', undefined, regEmailKey);
+module.exports.regVerifyIpLimiter = mk(30, 'Too many attempts. Please wait a few minutes and try again.');
