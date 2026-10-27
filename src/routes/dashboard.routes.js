@@ -14,9 +14,10 @@ router.get('/school/:school_id', protect, authorize('super_admin', 'school_admin
   if (!sameSchool(req.user, id)) return res.status(403).json({ error: 'Access denied' });
   try {
     const sid = Number(id);
-    const s = await pool.query('SELECT id, timezone FROM schools WHERE id=$1', [sid]);
+    const s = await pool.query('SELECT * FROM schools WHERE id=$1', [sid]);
     if (!s.rows[0]) return res.status(404).json({ error: 'School not found' });
     const tz = s.rows[0].timezone || 'Africa/Lagos';
+    const schoolName = s.rows[0].name || s.rows[0].school_name || null;
     const q = (sql, params) => pool.query(sql, params || [sid]).then((r) => r.rows);
 
     const [totals, attToday, attTrend, fees, feesMonthly, announcements, assessments, events, registrations, topCourses] = await Promise.all([
@@ -70,7 +71,7 @@ router.get('/school/:school_id', protect, authorize('super_admin', 'school_admin
     ]);
 
     res.json({
-      generated_at: new Date().toISOString(), school_id: sid, timezone: tz,
+      generated_at: new Date().toISOString(), school_id: sid, timezone: tz, school_name: schoolName,
       totals, attendance_today: attToday, attendance_trend: attTrend, fees, fees_monthly: feesMonthly,
       announcements, upcoming_assessments: assessments, upcoming_events: events,
       recent_registrations: registrations, top_courses: topCourses,
