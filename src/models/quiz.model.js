@@ -49,10 +49,11 @@ const getAssessment = async (id) => {
 const createQuiz = async (course_id, s) => {
   const r = await pool.query(
     `INSERT INTO assessments (course_id, title, type, instructions, due_date, total_marks,
-       time_limit_minutes, max_attempts, pass_percent, randomize_questions, awards_certificate, scheduled_at)
-     VALUES ($1,$2,'quiz',$3,$4,100,$5,$6,$7,$8,$9,$10) RETURNING *`,
+       time_limit_minutes, max_attempts, pass_percent, randomize_questions, awards_certificate, scheduled_at,
+       negative_marking, show_answers)
+     VALUES ($1,$2,'quiz',$3,$4,100,$5,$6,$7,$8,$9,$10,COALESCE($11::numeric,0),COALESCE($12::boolean,false)) RETURNING *`,
     [course_id, s.title, s.instructions, s.due_date, s.time_limit_minutes, s.max_attempts,
-     s.pass_percent, s.randomize_questions, s.awards_certificate, s.scheduled_at]
+     s.pass_percent, s.randomize_questions, s.awards_certificate, s.scheduled_at, s.negative_marking, s.show_answers]
   );
   return r.rows[0];
 };
@@ -60,10 +61,11 @@ const createQuiz = async (course_id, s) => {
 const updateSettings = async (id, s) => {
   const r = await pool.query(
     `UPDATE assessments SET title=$2, instructions=$3, due_date=$4, time_limit_minutes=$5,
-       max_attempts=$6, pass_percent=$7, randomize_questions=$8, awards_certificate=$9, scheduled_at=$10
+       max_attempts=$6, pass_percent=$7, randomize_questions=$8, awards_certificate=$9, scheduled_at=$10,
+       negative_marking=COALESCE($11::numeric, negative_marking), show_answers=COALESCE($12::boolean, show_answers)
      WHERE id=$1 RETURNING *`,
     [id, s.title, s.instructions, s.due_date, s.time_limit_minutes, s.max_attempts,
-     s.pass_percent, s.randomize_questions, s.awards_certificate, s.scheduled_at]
+     s.pass_percent, s.randomize_questions, s.awards_certificate, s.scheduled_at, s.negative_marking, s.show_answers]
   );
   return r.rows[0];
 };
@@ -129,8 +131,9 @@ const deleteQuestion = async (id) => {
 
 const listByCourse = async (course_id) => {
   const r = await pool.query(
-    `SELECT a.id, a.course_id, a.title, a.due_date, a.total_marks, a.time_limit_minutes,
-            a.max_attempts, a.pass_percent, a.awards_certificate,
+    `SELECT a.id, a.course_id, a.title, a.type, a.due_date, a.total_marks, a.time_limit_minutes,
+            a.max_attempts, a.pass_percent, a.awards_certificate, a.instructions,
+            a.is_published, a.closed_at, a.scheduled_at, a.allow_late, a.show_answers, a.negative_marking,
             (SELECT COUNT(*) FROM quiz_questions q WHERE q.assessment_id=a.id)::int AS question_count,
             (SELECT COUNT(*) FROM quiz_attempts t WHERE t.assessment_id=a.id AND t.status='submitted')::int AS students_attempted
      FROM assessments a
@@ -144,14 +147,15 @@ const listByCourse = async (course_id) => {
 const listForStudent = async (student_id) => {
   const r = await pool.query(
     `SELECT a.id, a.course_id, a.title, a.due_date, a.total_marks, a.time_limit_minutes,
-            a.max_attempts, a.pass_percent, c.title AS course_title,
+            a.max_attempts, a.pass_percent, a.scheduled_at, a.closed_at, a.show_answers, c.title AS course_title,
+            ((a.closed_at IS NOT NULL AND a.closed_at <= NOW()) OR (a.due_date IS NOT NULL AND a.due_date < NOW())) AS is_closed,
             (SELECT COUNT(*) FROM quiz_questions q WHERE q.assessment_id=a.id)::int AS question_count,
             t.status AS attempt_status, t.attempt_count AS attempts_used, t.score AS best_score, t.passed
      FROM assessments a
      JOIN courses c ON c.id=a.course_id
      JOIN enrollments e ON e.course_id=a.course_id AND e.student_id=$1
      LEFT JOIN quiz_attempts t ON t.assessment_id=a.id AND t.student_id=$1
-     WHERE a.type='quiz'
+     WHERE a.type='quiz' AND a.is_published = true AND (a.scheduled_at IS NULL OR a.scheduled_at <= NOW())
      ORDER BY a.due_date NULLS LAST, a.created_at DESC`,
     [student_id]
   );
@@ -347,7 +351,7 @@ const getAttempt = async (assessment_id, student_id) => {
 const getAllAttempts = listAttempts;
 
 module.exports = {
-  isEnrolled, getCourseSchool,
+  isEnrolled, getCourseSchool, isCorrect,
   getAssessment, createQuiz, updateSettings, recalcTotal, getTotalMarks, countQuestions,
   addQuestion, getQuestions, getQuestionWithSchool, deleteQuestion,
   listByCourse, listForStudent, getAttemptState, startAttempt, submitQuizAttempt, listAttempts,
