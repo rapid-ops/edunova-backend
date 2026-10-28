@@ -1,96 +1,86 @@
 const pool = require('../config/db');
 const m = require('../models/submission.model');
 const gb = require('../models/gradebook.model');
-const { validId, sameSchool } = require('../utils/access');
-const { sendEmail } = require('../services/email.service');
+const T = require('../utils/teaching');
+const A = require('../utils/assessmentaccess');
 
-const loadA = async (id) => {
-  const r = await pool.query(
-    `SELECT a.*, c.school_id AS course_school_id
-     FROM assessments a JOIN courses c ON c.id=a.course_id WHERE a.id=$1`,
-    [id]
-  );
-  return r.rows[0] || null;
+const { validId } = T;
+const deny = (res) => res.status(403).json({ error: 'Access denied' });
+const fail = (res, err) => {
+  console.error('submission error:', err.message);
+res.status(500).json({ error: 'Something went wrong. Please try again.' });
 };
+const schoolMatch = (user, schoolId) => user.role === 'super_admin' || (user.school_id != null && Number(user.school_id) === Number(schoolId));
+const hide = (s) => ({ ...s, score: null, feedback: null, status: 'submitted', graded_by: null, graded_at: null });
 
 const submit = async (req, res) => {
   try {
-    const { assessment_id, file_url, text_answer } = req.body;
-    if (!validId(assessment_id))
-      return res.status(400).json({ error: 'assessment_id required' });
-    const a = await loadA(assessment_id);
-    if (!a) return res.status(404).json({ error: 'Assessment not found' });
-    if (!sameSchool(req.user, a.course_school_id))
-      return res.status(403).json({ error: 'Access denied' });
-    if (!a.allow_late && a.due_date && new Date() > new Date(a.due_date))
-      return res.status(400).json({ error: 'Submission deadline has passed' });
-    const existing = await m.getByStudent(assessment_id, req.user.id);
-    if (existing) return res.status(409).json({ error: 'Already submitted' });
-    if (!file_url && !text_answer)
-      return res.status(400).json({ error: 'file_url or text_answer required' });
+    const { assessment_id, file_url, text_answer } = req.body || {};
+    if (!validId(assessment_id)) return res.status(400).json({ error: 'Choose what you are submitting to.' });
+    const a = await A.load(assessment_id);
+    if (!a || a.type === 'quiz') return res.status(404).json({ error: 'Assessment not found' });
+    if (!schoolMatch(req.user, a.course_school_id)) return deny(res);
+    if (!(await A.isEnrolled(req.user.id, a.course_id))) return res.status(403).json({ error: 'You are not enrolled in this course.' });
+    if (!A.visibleToStudent(a)) return res.status(404).json({ error: 'Assessment not found' });
+    if (a.closed_at && new Date(a.closed_at) <= new Date()) return res.status(400).json({ error: 'This has been closed and is no longer taking work.' });
+    if (!a.allow_late && a.due_date && new Date() > new Date(a.due_date)) return res.status(400).json({ error: 'The deadline has passed.' });
+    if (await m.getByStudent(a.id, req.user.id)) return res.status(409).json({ error: 'You have already submitted this.' });
+    const link = file_url ? String(file_url).trim() : '';
+    if (!link && !(text_answer && String(text_answer).trim())) return res.status(400).json({ error: 'Write an answer or add a link to your work.' });
+    if (link && !/^https?:\/\/\S+$/i.test(link)) return res.status(400).json({ error: 'The link must start with http or https.' });
     const submission = await m.create({
-      assessment_id: Number(assessment_id),
+      assessment_id: a.id,
       student_id: req.user.id,
-      file_url: file_url || null,
-      text_answer: text_answer || null,
+      file_url: link ? link.slice(0, 1000) : null,
+      text_answer: text_answer ? String(text_answer).slice(0, 20000) : null,
     });
     res.status(201).json({ submission });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { fail(res, err); }
 };
 
 const list = async (req, res) => {
   try {
-    const { assessment_id } = req.params;
-    if (!validId(assessment_id))
-      return res.status(400).json({ error: 'assessment_id required' });
-    const a = await loadA(assessment_id);
+    if (!validId(req.params.assessment_id)) return res.status(404).json({ error: 'Assessment not found' });
+    const a = await A.load(req.params.assessment_id);
     if (!a) return res.status(404).json({ error: 'Assessment not found' });
-    if (!sameSchool(req.user, a.course_school_id))
-      return res.status(403).json({ error: 'Access denied' });
-    res.json({ submissions: await m.getByAssessment(assessment_id) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    if (!(await A.canManage(req.user, a))) return deny(res);
+    res.json({ submissions: await m.getByAssessment(a.id) });
+  } catch (err) { fail(res, err); }
 };
 
 const getOwn = async (req, res) => {
   try {
-    const { assessment_id } = req.params;
-    if (!validId(assessment_id))
-      return res.status(400).json({ error: 'assessment_id required' });
-    const a = await loadA(assessment_id);
+    if (!validId(req.params.assessment_id)) return res.status(404).json({ error: 'Assessment not found' });
+    const a = await A.load(req.params.assessment_id);
     if (!a) return res.status(404).json({ error: 'Assessment not found' });
-    if (!sameSchool(req.user, a.course_school_id))
-      return res.status(403).json({ error: 'Access denied' });
-    const submission = await m.getByStudent(assessment_id, req.user.id);
-    if (!submission) return res.status(404).json({ error: 'No submission found' });
-    res.json({ submission });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    if (!schoolMatch(req.user, a.course_school_id)) return deny(res);
+    const s = await m.getByStudent(a.id, req.user.id);
+    if (!s) return res.status(404).json({ error: 'No submission found' });
+    const shown = s.status === 'graded' && !a.results_released ? hide(s) : s;
+    res.json({ submission: shown, results_released: !!a.results_released });
+  } catch (err) { fail(res, err); }
 };
 
 const gradeSubmission = async (req, res) => {
   try {
-    const { id } = req.params;
-    if (!validId(id)) return res.status(404).json({ error: 'Submission not found' });
+    if (!validId(req.params.id)) return res.status(404).json({ error: 'Submission not found' });
     const sr = await pool.query(
-      `SELECT s.*, a.course_id, a.total_marks, a.title AS assessment_title,
-              c.school_id AS course_school_id
+      `SELECT s.*, a.course_id, a.total_marks, a.title AS assessment_title, c.school_id AS course_school_id
        FROM submissions s
        JOIN assessments a ON a.id=s.assessment_id
        JOIN courses c ON c.id=a.course_id
-       WHERE s.id=$1`,
-      [id]
-    );
+       WHERE s.id=$1`, [req.params.id]);
     const sub = sr.rows[0];
     if (!sub) return res.status(404).json({ error: 'Submission not found' });
-    if (!sameSchool(req.user, sub.course_school_id))
-      return res.status(403).json({ error: 'Access denied' });
-    const { score, feedback } = req.body;
+    if (!(await T.canManageCourse(req.user, { id: sub.course_id, school_id: sub.course_school_id }))) return deny(res);
+    const { score, feedback } = req.body || {};
     const sc = Number(score);
-    const max = sub.total_marks || 100;
-    if (score === undefined || score === null || score === '' ||
-        !Number.isFinite(sc) || sc < 0 || sc > max)
-      return res.status(400).json({ error: `Score must be 0 to ${max}` });
+    const max = Number(sub.total_marks) || 100;
+    if (score === undefined || score === null || score === '' || !Number.isFinite(sc) || sc < 0 || sc > max) {
+      return res.status(400).json({ error: 'The score must be from 0 to ' + max + '.' });
+    }
     const submission = await m.grade({
-      id: sub.id, score: sc, feedback: feedback || null, graded_by: req.user.id,
+      id: sub.id, score: sc, feedback: feedback ? String(feedback).slice(0, 20000) : null, graded_by: req.user.id,
     });
     try {
       await gb.upsert({
@@ -99,21 +89,8 @@ const gradeSubmission = async (req, res) => {
         score: (sc / max) * 100, weight: 1,
       });
     } catch (e) { console.error('Gradebook upsert failed:', e.message); }
-    try {
-      const ur = await pool.query(`SELECT full_name, email FROM users WHERE id=$1`, [sub.student_id]);
-      const schr = await pool.query(`SELECT name FROM schools WHERE id=$1`, [sub.course_school_id]);
-      const st = ur.rows[0];
-      if (st?.email) {
-        await sendEmail(st.email, 'result', {
-          student_name: st.full_name,
-          assessment_title: sub.assessment_title,
-          score: sc, total: max,
-          school_name: schr.rows[0]?.name || 'Edunova',
-        });
-      }
-    } catch (e) { console.error('Email error:', e.message); }
     res.json({ submission });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { fail(res, err); }
 };
 
 module.exports = { submit, list, getOwn, gradeSubmission };

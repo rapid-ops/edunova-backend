@@ -1,8 +1,9 @@
 const router = require('express').Router();
-const { create, list, get, update, remove } = require('../controllers/course.controller');
+const { create, list, get, update, remove, mine } = require('../controllers/course.controller');
+const { assessmentLimiter } = require('../middleware/ratelimit.middleware');
 const { protect, authorize } = require('../middleware/auth.middleware');
 
-router.post('/', protect, authorize('super_admin','school_admin','teacher'), create);
+router.post('/', protect, authorize('super_admin','school_admin','teacher'), assessmentLimiter, create);
 router.get('/public', async (req, res) => {
   try {
     const pool = require('../config/db');
@@ -28,6 +29,7 @@ router.get('/public/school/:school_id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 router.get('/school/:school_id', protect, list);
+router.get('/mine', protect, mine);
 router.get('/:id', protect, get);
 router.put('/:id', protect, authorize('super_admin','school_admin','teacher'), update);
 router.delete('/:id', protect, authorize('super_admin','school_admin'), remove);
