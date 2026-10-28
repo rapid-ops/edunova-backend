@@ -37,3 +37,6 @@ const regEmailKey = (req) => 'email:' + (String((req.body && req.body.email) || 
 module.exports.regStartIpLimiter = mk(10, 'Too many attempts. Please wait a few minutes and try again.');
 module.exports.regEmailLimiter = mk(5, 'Too many attempts for this email. Please wait a few minutes and try again.', undefined, regEmailKey);
 module.exports.regVerifyIpLimiter = mk(30, 'Too many attempts. Please wait a few minutes and try again.');
+
+// Teachers creating courses, assessments and questions (Worker 4)
+module.exports.assessmentLimiter = mk(120, 'You are creating things very quickly. Wait a few minutes and try again.', undefined, userOrIp);

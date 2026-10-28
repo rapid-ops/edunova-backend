@@ -8,7 +8,7 @@ const stats = async (req, res) => {
     if (u.role !== 'super_admin' || u.school_id) {
       params.push(u.school_id);
       where = 'WHERE c.school_id = $1';
-      if (u.role === 'teacher') { params.push(u.id); where += ' AND c.teacher_id = $2'; }
+      if (u.role === 'teacher') { params.push(u.id); where += ' AND (c.teacher_id = $2 OR EXISTS (SELECT 1 FROM course_assignments ca WHERE ca.course_id = c.id AND ca.teacher_id = $2))'; }
     }
     const cols = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'quiz_attempts'");
     const has = new Set(cols.rows.map((r) => r.column_name));
