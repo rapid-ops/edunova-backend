@@ -15,6 +15,10 @@ router.post('/', protect, authorize('super_admin','school_admin','teacher'), asy
     if (!validId(user_id) || !title || !String(title).trim()) {
       return res.status(400).json({ error: 'user_id and title required' });
     }
+    if (req.user.role === 'teacher') {
+      const s = await pool.query(`SELECT teachers_can_notify FROM schools WHERE id=$1`, [req.user.school_id]);
+      if (s.rows[0] && s.rows[0].teachers_can_notify === false) return res.status(403).json({ error: 'Teachers are not allowed to send notifications in this school' });
+    }
     const target = await getUser(user_id);
     if (!target) return res.status(404).json({ error: 'User not found' });
     if (!sameSchool(req.user, target.school_id)) return res.status(403).json({ error: 'Access denied' });
@@ -65,6 +69,23 @@ router.post('/broadcast', protect, authorize('super_admin','school_admin'), asyn
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+router.get('/settings', protect, async (req, res) => {
+  try {
+    if (req.user.school_id == null) return res.json({ teachers_can_send: true });
+    const r = await pool.query(`SELECT teachers_can_notify FROM schools WHERE id=$1`, [req.user.school_id]);
+    res.json({ teachers_can_send: r.rows[0] ? r.rows[0].teachers_can_notify !== false : true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/settings', protect, authorize('school_admin'), async (req, res) => {
+  try {
+    if (req.user.school_id == null) return res.status(403).json({ error: 'Access denied' });
+    const v = req.body.teachers_can_send === true;
+    await pool.query(`UPDATE schools SET teachers_can_notify=$1 WHERE id=$2`, [v, req.user.school_id]);
+    res.json({ teachers_can_send: v });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/:user_id', protect, async (req, res) => {

@@ -138,3 +138,5 @@ ALTER TABLE assessments ADD COLUMN IF NOT EXISTS show_answers BOOLEAN NOT NULL D
 ALTER TABLE assessments ADD COLUMN IF NOT EXISTS results_released BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE assessments ALTER COLUMN results_released SET DEFAULT false;
 ALTER TABLE quiz_questions ADD COLUMN IF NOT EXISTS explanation TEXT;
+
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS teachers_can_notify BOOLEAN NOT NULL DEFAULT true;
