@@ -21,7 +21,7 @@ const routes = [
   'fee','gradebook','import','learningpath','learningtwin','lesson','message',
   'mfa','notification','oauth','parent','payment','peerreview','proctoring',
   'program','progress','proofofwork','quiz','reportcard','result','review',
-  'school','schoolapply','schoolimage','schooltheme','scorm','semester',
+  'school','schoolapply','schoolimage','schoolsite','schooltheme','scorm','semester',
   'skillgap','skillpassport','studentclass','submission','subscription','suggestion','ticket',
   'timetable','transcript','upload','virtuallab'
 ];

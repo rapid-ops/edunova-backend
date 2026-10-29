@@ -140,3 +140,6 @@ ALTER TABLE assessments ALTER COLUMN results_released SET DEFAULT false;
 ALTER TABLE quiz_questions ADD COLUMN IF NOT EXISTS explanation TEXT;
 
 ALTER TABLE schools ADD COLUMN IF NOT EXISTS teachers_can_notify BOOLEAN NOT NULL DEFAULT true;
+
+-- school website: chosen template, draft details, published copy
+CREATE TABLE IF NOT EXISTS school_sites (school_id INTEGER PRIMARY KEY REFERENCES schools(id) ON DELETE CASCADE, template_slug TEXT NOT NULL, draft JSONB NOT NULL DEFAULT '{}'::jsonb, published JSONB, published_slug TEXT, published_at TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT NOW());
