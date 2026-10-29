@@ -1,0 +1,244 @@
+{
+  "name": "Premium International School",
+  "slug": "premium-international-school",
+  "description": "Refined international-school presentation with spacious layouts, confident typography and polished campus imagery.",
+  "fields": [
+    {
+      "key": "school_name",
+      "label": "School name",
+      "type": "text",
+      "required": true,
+      "default": ""
+    },
+    {
+      "key": "tagline",
+      "label": "Tagline",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_text",
+      "label": "About the school",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "mission",
+      "label": "Mission",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "logo_url",
+      "label": "Logo image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "hero_image_url",
+      "label": "Hero image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "primary_color",
+      "label": "Primary colour",
+      "type": "color",
+      "required": false,
+      "default": "#142B49"
+    },
+    {
+      "key": "accent_color",
+      "label": "Accent colour",
+      "type": "color",
+      "required": false,
+      "default": "#D8B56D"
+    },
+    {
+      "key": "address",
+      "label": "School address",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "phone",
+      "label": "Phone number",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "email",
+      "label": "Email address",
+      "type": "email",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "whatsapp",
+      "label": "WhatsApp number with country code",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "facebook_url",
+      "label": "Facebook URL",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "instagram_url",
+      "label": "Instagram URL",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "year_founded",
+      "label": "Year founded",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "student_count",
+      "label": "Student count",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "teacher_count",
+      "label": "Teacher count",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "apply_url",
+      "label": "Application URL",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "login_url",
+      "label": "Portal login URL",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "footer_text",
+      "label": "Footer text",
+      "type": "text",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "lists": [
+    {
+      "key": "programs",
+      "label": "Programs",
+      "max": 8,
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "description",
+          "label": "Description",
+          "type": "textarea"
+        }
+      ]
+    },
+    {
+      "key": "gallery",
+      "label": "Gallery",
+      "max": 12,
+      "fields": [
+        {
+          "key": "image_url",
+          "label": "Image",
+          "type": "image"
+        },
+        {
+          "key": "caption",
+          "label": "Caption",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "key": "staff",
+      "label": "Staff",
+      "max": 8,
+      "fields": [
+        {
+          "key": "name",
+          "label": "Name",
+          "type": "text"
+        },
+        {
+          "key": "role",
+          "label": "Role",
+          "type": "text"
+        },
+        {
+          "key": "photo_url",
+          "label": "Photo",
+          "type": "image"
+        }
+      ]
+    },
+    {
+      "key": "testimonials",
+      "label": "Testimonials",
+      "max": 8,
+      "fields": [
+        {
+          "key": "name",
+          "label": "Name",
+          "type": "text"
+        },
+        {
+          "key": "text",
+          "label": "Testimonial",
+          "type": "textarea"
+        }
+      ]
+    },
+    {
+      "key": "news",
+      "label": "News",
+      "max": 8,
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "date",
+          "label": "Date",
+          "type": "date"
+        },
+        {
+          "key": "summary",
+          "label": "Summary",
+          "type": "textarea"
+        }
+      ]
+    }
+  ]
+}
