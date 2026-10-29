@@ -22,6 +22,20 @@ router.get('/child/:student_id', protect, authorize('parent'), c.childAssignment
 router.get('/course/:course_id', protect, staff, c.listByCourse);
 router.put('/submissions/:submission_id/grade', protect, staff, c.gradeSubmission);
 router.get('/:id', protect, staffOrStudent, c.detail);
+router.post('/:id/attachment', protect, staff, uploadOne, async (req, res) => {
+  try {
+    if (!/^\d+$/.test(req.params.id)) return res.status(404).json({ error: 'Assignment not found' });
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const pool = require('../config/db');
+    const r = await pool.query('SELECT c.school_id FROM assessments a JOIN courses c ON c.id=a.course_id WHERE a.id=$1', [req.params.id]);
+    if (!r.rows[0]) return res.status(404).json({ error: 'Assignment not found' });
+    if (req.user.role !== 'super_admin' && Number(req.user.school_id) !== Number(r.rows[0].school_id)) return res.status(403).json({ error: 'Access denied' });
+    const u = await pool.query('UPDATE assessments SET attachment_url=$2 WHERE id=$1 RETURNING attachment_url', [req.params.id, req.file.path]);
+    res.json({ attachment_url: u.rows[0].attachment_url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 router.post('/:id/submit', protect, authorize('student'), uploadOne, c.submit);
 router.get('/:id/submissions', protect, staff, c.submissions);
 
