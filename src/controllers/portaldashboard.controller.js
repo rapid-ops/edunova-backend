@@ -91,6 +91,17 @@ const student = async (req, res) => {
       `SELECT b.id, b.name, b.description, b.icon, sb.awarded_at FROM student_badges sb
        JOIN gamification_badges b ON b.id = sb.badge_id WHERE sb.student_id = $1 ORDER BY sb.awarded_at DESC LIMIT 4`, [sid]), []);
 
+    const tt = await safe(async () => {
+      const inClass = (await q(`SELECT 1 FROM student_classes WHERE student_id = $1 LIMIT 1`, [sid])).length > 0;
+      const items = await q(
+        `SELECT t.id, t.start_time::text AS start_time, t.end_time::text AS end_time, c.title AS course_title, cl.name AS class_name, tu.full_name AS teacher_name,
+                CASE WHEN ${LAGOS_TIME} >= t.end_time THEN 'done' WHEN ${LAGOS_TIME} >= t.start_time THEN 'now' ELSE 'next' END AS state
+         FROM timetable t JOIN student_classes sc ON sc.class_id = t.class_id AND sc.student_id = $1
+         JOIN courses c ON c.id = t.course_id JOIN classes cl ON cl.id = t.class_id LEFT JOIN users tu ON tu.id = t.teacher_id
+         WHERE t.day_of_week = ${LAGOS_DAY} ORDER BY t.start_time`, [sid]);
+      return { available: true, in_class: inClass, items };
+    }, { available: false, in_class: false, items: [] });
+
     res.json({
       dashboard: {
         profile,
@@ -100,7 +111,9 @@ const student = async (req, res) => {
         grades: await gradesFor(sid),
         xp,
         badges,
-        timetable_available: false,
+        timetable_available: tt.available,
+        in_class: tt.in_class,
+        timetable: tt.items,
         links: { ai_tutor: '/student/ai-tutor' },
       },
     });

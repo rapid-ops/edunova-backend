@@ -16,14 +16,20 @@ const create = async (req, res) => {
       school_id = Number(req.body.school_id);
     }
     if (school_id == null) return res.status(403).json({ error: 'Access denied' });
-    const a = await m.create({
-      school_id,
-      created_by: req.user.id,
-      title: String(title).trim().slice(0, 255),
-      body: body ? String(body).slice(0, 5000) : null,
-      target_roles: Array.isArray(target_roles) ? target_roles : [],
-      class_id: validId(class_id) ? Number(class_id) : null,
-    });
+    const roles = (Array.isArray(target_roles) ? target_roles : []).map((r) => String(r).trim().toLowerCase().slice(0, 20)).filter(Boolean);
+    const audiences = roles.length ? [...new Set(roles)] : ['all'];
+    const made = [];
+    for (const target_role of audiences) {
+      made.push(await m.create({
+        school_id,
+        created_by: req.user.id,
+        title: String(title).trim().slice(0, 255),
+        body: body ? String(body).slice(0, 5000) : null,
+        target_role,
+        class_id: validId(class_id) ? Number(class_id) : null,
+      }));
+    }
+    const a = made[0];
 
     try {
       const schoolRes = await pool.query('SELECT name FROM schools WHERE id=$1', [school_id]);
