@@ -90,4 +90,13 @@ router.patch('/read/:user_id', protect, async (req, res) => {
   }
 });
 
+router.patch('/item/:id/read', protect, async (req, res) => {
+  const uid = Number(req.user.id);
+  if (!validId(req.params.id) || !uid) return res.status(404).json({ error: 'Not found' });
+  try {
+    await pool.query(`UPDATE notifications SET is_read=true WHERE id=$1 AND user_id=$2`, [req.params.id, uid]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;
