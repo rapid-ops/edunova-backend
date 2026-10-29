@@ -22,6 +22,7 @@ router.get('/school-admin-chats', protect, admin, a.listChats);
 router.get('/school-admin-chats/:id', protect, admin, a.getChat);
 router.delete('/school-admin-chats/:id', protect, admin, a.deleteChat);
 
+router.get('/course-generations/:id', protect, authorize('teacher', 'school_admin'), require('../controllers/aicoursestatus.controller').status);
 router.use(aiLimiter);
 router.post('/generate-quiz', protect, authorize('teacher', 'school_admin'), qz.generateQuiz);
 router.post('/generate-course', protect, authorize('teacher', 'school_admin'), c.generateCourse);
