@@ -15,8 +15,8 @@ const isEnrolled = async (student_id, course_id) => {
 
 const createAssignment = async ({ course_id, title, instructions, due_date, total_marks, allow_late }) => {
   const r = await pool.query(
-    `INSERT INTO assessments (course_id, title, type, instructions, due_date, total_marks, allow_late)
-     VALUES ($1,$2,'assignment',$3,$4,$5,$6) RETURNING *`,
+    `INSERT INTO assessments (course_id, title, type, instructions, due_date, total_marks, allow_late, is_published)
+     VALUES ($1,$2,'assignment',$3,$4,$5,$6,true) RETURNING *`,
     [course_id, title, instructions || null, due_date || null, total_marks, allow_late !== false]
   );
   return r.rows[0];
