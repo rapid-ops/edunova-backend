@@ -1,0 +1,262 @@
+{
+  "name": "Minimalist School",
+  "slug": "concept-minimalist-school",
+  "description": "Calm, airy and simple. Soft greens and generous space, suited to nurseries, primary schools and modern day schools.",
+  "fields": [
+    {
+      "key": "school_name",
+      "label": "School name",
+      "type": "text",
+      "required": true,
+      "default": ""
+    },
+    {
+      "key": "tagline",
+      "label": "Tagline",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_text",
+      "label": "About the school",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "logo_url",
+      "label": "Logo image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "hero_image_url",
+      "label": "Hero image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_image_url",
+      "label": "About image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "feature_image_url",
+      "label": "School life image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "primary_color",
+      "label": "Primary colour",
+      "type": "color",
+      "required": false,
+      "default": "#294b3b"
+    },
+    {
+      "key": "accent_color",
+      "label": "Accent colour",
+      "type": "color",
+      "required": false,
+      "default": "#527563"
+    },
+    {
+      "key": "address",
+      "label": "School address",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "phone",
+      "label": "Phone number",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "email",
+      "label": "Email address",
+      "type": "email",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "office_hours",
+      "label": "Office hours",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "whatsapp",
+      "label": "WhatsApp number (enquiries go here)",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "facebook_url",
+      "label": "Facebook link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "instagram_url",
+      "label": "Instagram link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "year_founded",
+      "label": "Year founded",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "student_count",
+      "label": "Number of students",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "teacher_count",
+      "label": "Number of teachers",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "apply_url",
+      "label": "Apply link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "login_url",
+      "label": "Portal login link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "lists": [
+    {
+      "key": "programs",
+      "label": "Programs",
+      "max": 6,
+      "fields": [
+        {
+          "key": "label",
+          "label": "Stage label",
+          "type": "text"
+        },
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "description",
+          "label": "Description",
+          "type": "textarea"
+        }
+      ]
+    },
+    {
+      "key": "news",
+      "label": "News",
+      "max": 6,
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "date",
+          "label": "Date",
+          "type": "date"
+        },
+        {
+          "key": "summary",
+          "label": "Summary",
+          "type": "textarea"
+        },
+        {
+          "key": "image_url",
+          "label": "Image",
+          "type": "image"
+        }
+      ]
+    }
+  ],
+  "sample": {
+    "fields": {
+      "tagline": "A thoughtful approach to a brighter future.",
+      "about_text": "We believe every learner brings something unique to the classroom. Our role is to recognise that potential, nurture it with care and provide the knowledge and experiences that help it grow.",
+      "hero_image_url": "@classroom.jpg",
+      "about_image_url": "@activity.jpg",
+      "feature_image_url": "@classroom.jpg",
+      "address": "123 Education Road, Your City",
+      "phone": "+234 800 000 0000",
+      "email": "info@yourschool.example",
+      "office_hours": "Monday to Friday, 8:00am to 4:00pm"
+    },
+    "lists": {
+      "programs": [
+        {
+          "label": "01 / BEGIN",
+          "title": "Early Years",
+          "description": "Play, exploration and the first building blocks of learning."
+        },
+        {
+          "label": "02 / BUILD",
+          "title": "Primary",
+          "description": "Strong foundations, creative thinking and growing independence."
+        },
+        {
+          "label": "03 / EXPLORE",
+          "title": "Secondary",
+          "description": "Deeper knowledge, new perspectives and personal direction."
+        },
+        {
+          "label": "04 / PREPARE",
+          "title": "Sixth Form",
+          "description": "Focused study and preparation for future opportunities."
+        }
+      ],
+      "news": [
+        {
+          "title": "Celebrating teamwork and participation",
+          "image_url": "@sports.jpg",
+          "date": "",
+          "summary": "Recognising the value of taking part, supporting one another and growing together."
+        },
+        {
+          "title": "Making room for curious minds",
+          "image_url": "@study.jpg",
+          "date": "",
+          "summary": "Discover how collaboration and questions can make learning more meaningful."
+        },
+        {
+          "title": "Small moments, meaningful progress",
+          "image_url": "@activity.jpg",
+          "date": "",
+          "summary": "A look at the everyday experiences that help students build confidence."
+        }
+      ]
+    }
+  }
+}

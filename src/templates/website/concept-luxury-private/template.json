@@ -1,0 +1,226 @@
+{
+  "name": "Luxury Private",
+  "slug": "concept-luxury-private",
+  "description": "Elegant and exclusive. Deep plum and gold with refined typography, suited to private and boarding schools.",
+  "fields": [
+    {
+      "key": "school_name",
+      "label": "School name",
+      "type": "text",
+      "required": true,
+      "default": ""
+    },
+    {
+      "key": "tagline",
+      "label": "Tagline",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_text",
+      "label": "About the school",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "logo_url",
+      "label": "Logo image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "hero_image_url",
+      "label": "Hero image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_image_url",
+      "label": "About image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "experience_image_url",
+      "label": "School life image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "campus_image_url",
+      "label": "Campus image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "primary_color",
+      "label": "Primary colour",
+      "type": "color",
+      "required": false,
+      "default": "#463448"
+    },
+    {
+      "key": "accent_color",
+      "label": "Accent colour",
+      "type": "color",
+      "required": false,
+      "default": "#c6a66a"
+    },
+    {
+      "key": "address",
+      "label": "School address",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "phone",
+      "label": "Phone number",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "email",
+      "label": "Email address",
+      "type": "email",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "office_hours",
+      "label": "Office hours",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "whatsapp",
+      "label": "WhatsApp number (enquiries go here)",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "facebook_url",
+      "label": "Facebook link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "instagram_url",
+      "label": "Instagram link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "year_founded",
+      "label": "Year founded",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "student_count",
+      "label": "Number of students",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "teacher_count",
+      "label": "Number of teachers",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "apply_url",
+      "label": "Apply link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "login_url",
+      "label": "Portal login link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "lists": [
+    {
+      "key": "programs",
+      "label": "Programs",
+      "max": 6,
+      "fields": [
+        {
+          "key": "label",
+          "label": "Stage label",
+          "type": "text"
+        },
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "description",
+          "label": "Description",
+          "type": "textarea"
+        },
+        {
+          "key": "image_url",
+          "label": "Image",
+          "type": "image"
+        }
+      ]
+    }
+  ],
+  "sample": {
+    "fields": {
+      "tagline": "An education built around your child.",
+      "about_text": "The best education recognises the individual. Each student arrives with distinct interests, abilities and ambitions, and our responsibility is to help every learner fulfil their promise.",
+      "hero_image_url": "@campus.jpg",
+      "about_image_url": "@classroom.jpg",
+      "experience_image_url": "@sports.jpg",
+      "campus_image_url": "@library.jpg",
+      "address": "123 Education Road, Your City",
+      "phone": "+234 800 000 0000",
+      "email": "info@yourschool.example",
+      "office_hours": "Monday to Friday, 8:00am to 4:00pm"
+    },
+    "lists": {
+      "programs": [
+        {
+          "label": "Early learning",
+          "title": "Foundations",
+          "description": "Confidence, curiosity and essential skills developed through a nurturing start.",
+          "image_url": "@early.jpg"
+        },
+        {
+          "label": "Developing minds",
+          "title": "Progression",
+          "description": "Broader knowledge, deeper understanding and growing independence.",
+          "image_url": "@junior.jpg"
+        },
+        {
+          "label": "Future readiness",
+          "title": "Achievement",
+          "description": "Focused preparation and guidance for university, careers and life beyond school.",
+          "image_url": "@activity.jpg"
+        }
+      ]
+    }
+  }
+}

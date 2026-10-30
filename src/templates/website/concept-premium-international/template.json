@@ -1,0 +1,215 @@
+{
+  "name": "Premium International",
+  "slug": "concept-premium-international",
+  "description": "Refined and confident. Deep navy and gold with large photography, suited to international and premium schools.",
+  "fields": [
+    {
+      "key": "school_name",
+      "label": "School name",
+      "type": "text",
+      "required": true,
+      "default": ""
+    },
+    {
+      "key": "tagline",
+      "label": "Tagline",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_text",
+      "label": "About the school",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "logo_url",
+      "label": "Logo image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_image_url",
+      "label": "About image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "hero_image_url",
+      "label": "Hero image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "campus_image_url",
+      "label": "Campus life image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "primary_color",
+      "label": "Primary colour",
+      "type": "color",
+      "required": false,
+      "default": "#102c46"
+    },
+    {
+      "key": "accent_color",
+      "label": "Accent colour",
+      "type": "color",
+      "required": false,
+      "default": "#c6a66a"
+    },
+    {
+      "key": "address",
+      "label": "School address",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "phone",
+      "label": "Phone number",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "email",
+      "label": "Email address",
+      "type": "email",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "office_hours",
+      "label": "Office hours",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "whatsapp",
+      "label": "WhatsApp number (enquiries go here)",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "facebook_url",
+      "label": "Facebook link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "instagram_url",
+      "label": "Instagram link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "year_founded",
+      "label": "Year founded",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "student_count",
+      "label": "Number of students",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "teacher_count",
+      "label": "Number of teachers",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "apply_url",
+      "label": "Apply link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "login_url",
+      "label": "Portal login link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "lists": [
+    {
+      "key": "programs",
+      "label": "Programs",
+      "max": 6,
+      "fields": [
+        {
+          "key": "label",
+          "label": "Stage label",
+          "type": "text"
+        },
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "description",
+          "label": "Description",
+          "type": "textarea"
+        }
+      ]
+    }
+  ],
+  "sample": {
+    "fields": {
+      "tagline": "Education with purpose. Excellence without limits.",
+      "about_text": "Education reaches beyond examination results. We bring together excellent teaching, meaningful experiences and a supportive community to help young people become thoughtful, capable and compassionate leaders.",
+      "about_image_url": "@activity.jpg",
+      "hero_image_url": "@campus-wide.jpg",
+      "campus_image_url": "@classroom.jpg",
+      "address": "123 Education Road, Your City",
+      "phone": "+234 800 000 0000",
+      "email": "info@yourschool.example",
+      "office_hours": "Monday to Friday, 8:00am to 4:00pm"
+    },
+    "lists": {
+      "programs": [
+        {
+          "label": "01 / FOUNDATION",
+          "title": "Early Years",
+          "description": "Curiosity-led beginnings that build confidence, language and a love of discovery."
+        },
+        {
+          "label": "02 / DISCOVERY",
+          "title": "Primary",
+          "description": "Strong foundations in literacy, numeracy, creativity and collaborative learning."
+        },
+        {
+          "label": "03 / DIRECTION",
+          "title": "Secondary",
+          "description": "Academic depth, wider perspectives and preparation for future pathways."
+        },
+        {
+          "label": "04 / DESTINATION",
+          "title": "Sixth Form",
+          "description": "Advanced study, independent thinking and confident preparation for what comes next."
+        }
+      ]
+    }
+  }
+}

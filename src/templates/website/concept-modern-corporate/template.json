@@ -1,0 +1,265 @@
+{
+  "name": "Modern Corporate",
+  "slug": "concept-modern-corporate",
+  "description": "Clean, bright and digital. Navy and blue with crisp cards, suited to modern and technology-focused schools.",
+  "fields": [
+    {
+      "key": "school_name",
+      "label": "School name",
+      "type": "text",
+      "required": true,
+      "default": ""
+    },
+    {
+      "key": "tagline",
+      "label": "Tagline",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_text",
+      "label": "About the school",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "logo_url",
+      "label": "Logo image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "hero_image_url",
+      "label": "Hero image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_image_url",
+      "label": "About image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "feature_image_url",
+      "label": "School life image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "primary_color",
+      "label": "Primary colour",
+      "type": "color",
+      "required": false,
+      "default": "#102b46"
+    },
+    {
+      "key": "accent_color",
+      "label": "Accent colour",
+      "type": "color",
+      "required": false,
+      "default": "#1769aa"
+    },
+    {
+      "key": "address",
+      "label": "School address",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "phone",
+      "label": "Phone number",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "email",
+      "label": "Email address",
+      "type": "email",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "office_hours",
+      "label": "Office hours",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "whatsapp",
+      "label": "WhatsApp number (enquiries go here)",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "facebook_url",
+      "label": "Facebook link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "instagram_url",
+      "label": "Instagram link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "year_founded",
+      "label": "Year founded",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "student_count",
+      "label": "Number of students",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "teacher_count",
+      "label": "Number of teachers",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "apply_url",
+      "label": "Apply link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "login_url",
+      "label": "Portal login link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "lists": [
+    {
+      "key": "programs",
+      "label": "Programs",
+      "max": 6,
+      "fields": [
+        {
+          "key": "label",
+          "label": "Stage label",
+          "type": "text"
+        },
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "description",
+          "label": "Description",
+          "type": "textarea"
+        },
+        {
+          "key": "image_url",
+          "label": "Image",
+          "type": "image"
+        }
+      ]
+    },
+    {
+      "key": "news",
+      "label": "News",
+      "max": 6,
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "date",
+          "label": "Date",
+          "type": "date"
+        },
+        {
+          "key": "summary",
+          "label": "Summary",
+          "type": "textarea"
+        },
+        {
+          "key": "image_url",
+          "label": "Image",
+          "type": "image"
+        }
+      ]
+    }
+  ],
+  "sample": {
+    "fields": {
+      "tagline": "Building knowledge. Unlocking potential.",
+      "about_text": "Every learner deserves the opportunity, guidance and environment to thrive. We bring together strong academic foundations, meaningful experiences and a culture of care.",
+      "hero_image_url": "@activity.jpg",
+      "about_image_url": "@classroom.jpg",
+      "feature_image_url": "@sports.jpg",
+      "address": "123 Education Road, Your City",
+      "phone": "+234 800 000 0000",
+      "email": "info@yourschool.example",
+      "office_hours": "Monday to Friday, 8:00am to 4:00pm"
+    },
+    "lists": {
+      "programs": [
+        {
+          "label": "Foundational learning",
+          "title": "Early Years & Primary",
+          "description": "Building curiosity, literacy, numeracy and confidence through engaging learning experiences.",
+          "image_url": "@early.jpg"
+        },
+        {
+          "label": "Knowledge in action",
+          "title": "Junior Secondary",
+          "description": "Developing strong subject foundations, critical thinking and independent study habits.",
+          "image_url": "@junior.jpg"
+        },
+        {
+          "label": "Ready for the next step",
+          "title": "Senior Secondary",
+          "description": "Focused academic preparation, personal guidance and pathways to future opportunities.",
+          "image_url": "@senior.jpg"
+        }
+      ],
+      "news": [
+        {
+          "title": "Creating active, engaging classrooms",
+          "image_url": "@classroom.jpg",
+          "date": "",
+          "summary": "See how purposeful classroom experiences can help students take ownership of learning."
+        },
+        {
+          "title": "Learning teamwork through sport",
+          "image_url": "@sports.jpg",
+          "date": "",
+          "summary": "School activities help students build confidence, collaboration and resilience."
+        },
+        {
+          "title": "Growing stronger as a school community",
+          "image_url": "@senior.jpg",
+          "date": "",
+          "summary": "Celebrating the shared effort of students, families and educators."
+        }
+      ]
+    }
+  }
+}

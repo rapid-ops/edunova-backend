@@ -1,0 +1,226 @@
+{
+  "name": "African Contemporary",
+  "slug": "concept-african-contemporary",
+  "description": "Warm and proud. Deep green with orange accents and rounded shapes, suited to community and culture-led schools.",
+  "fields": [
+    {
+      "key": "school_name",
+      "label": "School name",
+      "type": "text",
+      "required": true,
+      "default": ""
+    },
+    {
+      "key": "tagline",
+      "label": "Tagline",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_text",
+      "label": "About the school",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "logo_url",
+      "label": "Logo image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "hero_image_url",
+      "label": "Hero image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_image_url",
+      "label": "About image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "community_image_url",
+      "label": "Community image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "culture_image_url",
+      "label": "Values and culture image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "primary_color",
+      "label": "Primary colour",
+      "type": "color",
+      "required": false,
+      "default": "#173d35"
+    },
+    {
+      "key": "accent_color",
+      "label": "Accent colour",
+      "type": "color",
+      "required": false,
+      "default": "#e17b43"
+    },
+    {
+      "key": "address",
+      "label": "School address",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "phone",
+      "label": "Phone number",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "email",
+      "label": "Email address",
+      "type": "email",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "office_hours",
+      "label": "Office hours",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "whatsapp",
+      "label": "WhatsApp number (enquiries go here)",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "facebook_url",
+      "label": "Facebook link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "instagram_url",
+      "label": "Instagram link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "year_founded",
+      "label": "Year founded",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "student_count",
+      "label": "Number of students",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "teacher_count",
+      "label": "Number of teachers",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "apply_url",
+      "label": "Apply link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "login_url",
+      "label": "Portal login link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "lists": [
+    {
+      "key": "programs",
+      "label": "Programs",
+      "max": 6,
+      "fields": [
+        {
+          "key": "label",
+          "label": "Stage label",
+          "type": "text"
+        },
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "description",
+          "label": "Description",
+          "type": "textarea"
+        },
+        {
+          "key": "image_url",
+          "label": "Image",
+          "type": "image"
+        }
+      ]
+    }
+  ],
+  "sample": {
+    "fields": {
+      "tagline": "Education rooted in community, built for the future.",
+      "about_text": "A great education gives students both strong roots and wide horizons. Learners are encouraged to understand their communities, appreciate their heritage and engage confidently with the wider world.",
+      "hero_image_url": "@activity.jpg",
+      "about_image_url": "@classroom.jpg",
+      "community_image_url": "@sports.jpg",
+      "culture_image_url": "@digital.jpg",
+      "address": "123 Education Road, Your City",
+      "phone": "+234 800 000 0000",
+      "email": "info@yourschool.example",
+      "office_hours": "Monday to Friday, 8:00am to 4:00pm"
+    },
+    "lists": {
+      "programs": [
+        {
+          "label": "Early years & primary",
+          "title": "Building strong foundations",
+          "description": "Curiosity, literacy, numeracy and confidence grow through active, supportive learning.",
+          "image_url": "@early.jpg"
+        },
+        {
+          "label": "Junior secondary",
+          "title": "Discovering new strengths",
+          "description": "Students deepen subject knowledge, develop critical thinking and explore their interests.",
+          "image_url": "@junior.jpg"
+        },
+        {
+          "label": "Senior secondary",
+          "title": "Preparing to make an impact",
+          "description": "Academic focus and guidance prepare learners for further study and future opportunities.",
+          "image_url": "@senior.jpg"
+        }
+      ]
+    }
+  }
+}
