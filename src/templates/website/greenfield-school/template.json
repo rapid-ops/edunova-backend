@@ -1,0 +1,363 @@
+{
+  "name": "Greenfield School",
+  "slug": "greenfield-school",
+  "description": "Bright, complete school website that already looks full of photos, programs, staff and news until you add your own.",
+  "fields": [
+    {
+      "key": "school_name",
+      "label": "School name",
+      "type": "text",
+      "required": true,
+      "default": ""
+    },
+    {
+      "key": "tagline",
+      "label": "Tagline",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_text",
+      "label": "About the school",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "mission",
+      "label": "Mission",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "logo_url",
+      "label": "Logo image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "hero_image_url",
+      "label": "Hero image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_image_url",
+      "label": "About section image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "primary_color",
+      "label": "Primary colour",
+      "type": "color",
+      "required": false,
+      "default": "#123B63"
+    },
+    {
+      "key": "accent_color",
+      "label": "Accent colour",
+      "type": "color",
+      "required": false,
+      "default": "#D8B56D"
+    },
+    {
+      "key": "address",
+      "label": "School address",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "phone",
+      "label": "Phone number",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "email",
+      "label": "Email address",
+      "type": "email",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "office_hours",
+      "label": "Office hours",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "whatsapp",
+      "label": "WhatsApp number (enquiries go here)",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "facebook_url",
+      "label": "Facebook link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "instagram_url",
+      "label": "Instagram link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "year_founded",
+      "label": "Year founded",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "student_count",
+      "label": "Number of students",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "teacher_count",
+      "label": "Number of teachers",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "apply_url",
+      "label": "Apply link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "login_url",
+      "label": "Portal login link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "lists": [
+    {
+      "key": "programs",
+      "label": "Programs",
+      "max": 6,
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "description",
+          "label": "Description",
+          "type": "textarea"
+        }
+      ]
+    },
+    {
+      "key": "gallery",
+      "label": "Gallery",
+      "max": 12,
+      "fields": [
+        {
+          "key": "image_url",
+          "label": "Image",
+          "type": "image"
+        },
+        {
+          "key": "caption",
+          "label": "Caption",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "key": "staff",
+      "label": "Staff",
+      "max": 8,
+      "fields": [
+        {
+          "key": "name",
+          "label": "Name",
+          "type": "text"
+        },
+        {
+          "key": "role",
+          "label": "Role",
+          "type": "text"
+        },
+        {
+          "key": "photo_url",
+          "label": "Photo",
+          "type": "image"
+        }
+      ]
+    },
+    {
+      "key": "testimonials",
+      "label": "Testimonials",
+      "max": 6,
+      "fields": [
+        {
+          "key": "name",
+          "label": "Name",
+          "type": "text"
+        },
+        {
+          "key": "text",
+          "label": "Quote",
+          "type": "textarea"
+        }
+      ]
+    },
+    {
+      "key": "news",
+      "label": "News",
+      "max": 6,
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "date",
+          "label": "Date",
+          "type": "date"
+        },
+        {
+          "key": "summary",
+          "label": "Summary",
+          "type": "textarea"
+        },
+        {
+          "key": "image_url",
+          "label": "Image",
+          "type": "image"
+        }
+      ]
+    }
+  ],
+  "sample": {
+    "fields": {
+      "tagline": "World-class education for a brighter future.",
+      "about_text": "We are a co-educational learning community committed to academic excellence, character development and global citizenship. Students are encouraged to think boldly, act responsibly and achieve their dreams.",
+      "mission": "To provide high-quality education that develops well-rounded individuals who make a positive impact in their communities and the world.",
+      "hero_image_url": "@hero.jpg",
+      "about_image_url": "@campus.jpg",
+      "address": "123 Education Road, Your City",
+      "phone": "+234 800 000 0000",
+      "email": "info@yourschool.example",
+      "office_hours": "Monday to Friday, 8:00am to 4:00pm"
+    },
+    "lists": {
+      "programs": [
+        {
+          "title": "Early Years",
+          "description": "A warm, play-based foundation for discovery, language, creativity and social development."
+        },
+        {
+          "title": "Primary School",
+          "description": "Strong foundations in literacy, numeracy, inquiry and collaborative problem-solving."
+        },
+        {
+          "title": "Secondary School",
+          "description": "Broad academic pathways that prepare learners for further study and responsible leadership."
+        },
+        {
+          "title": "Sixth Form",
+          "description": "Focused advanced learning, university preparation and independent thinking."
+        }
+      ],
+      "gallery": [
+        {
+          "image_url": "@classroom.jpg",
+          "caption": "Students learning in a classroom"
+        },
+        {
+          "image_url": "@sports.jpg",
+          "caption": "Students taking part in sports"
+        },
+        {
+          "image_url": "@study.jpg",
+          "caption": "Students studying together"
+        },
+        {
+          "image_url": "@activity.jpg",
+          "caption": "A school learning activity"
+        }
+      ],
+      "staff": [
+        {
+          "name": "Dr. Sarah Johnson",
+          "role": "Head of Academics",
+          "photo_url": "@staff-1.jpg"
+        },
+        {
+          "name": "Mr. David Okafor",
+          "role": "Head of Secondary",
+          "photo_url": "@staff-2.jpg"
+        },
+        {
+          "name": "Mrs. Amina Yusuf",
+          "role": "Head of Primary",
+          "photo_url": "@staff-3.jpg"
+        },
+        {
+          "name": "Mr. Tunde Bello",
+          "role": "Head of Boarding",
+          "photo_url": "@staff-4.jpg"
+        }
+      ],
+      "testimonials": [
+        {
+          "name": "Sample parent",
+          "text": "This school has helped my child become more confident, curious and willing to take on new challenges."
+        },
+        {
+          "name": "Sample parent",
+          "text": "The teachers are approachable and committed. We feel involved in our child's progress."
+        },
+        {
+          "name": "Sample parent",
+          "text": "A supportive environment with a strong balance of academics, creativity and character."
+        }
+      ],
+      "news": [
+        {
+          "title": "Annual Sports Day",
+          "date": "",
+          "summary": "Students showcase teamwork, talent and determination during the sports celebration.",
+          "image_url": "@sports.jpg"
+        },
+        {
+          "title": "New STEM Laboratory Opens",
+          "date": "",
+          "summary": "New spaces for hands-on science, technology and innovation.",
+          "image_url": "@news-stem.jpg"
+        },
+        {
+          "title": "Open Day",
+          "date": "",
+          "summary": "Families are invited to visit the campus and meet our teachers.",
+          "image_url": "@campus.jpg"
+        }
+      ]
+    }
+  }
+}

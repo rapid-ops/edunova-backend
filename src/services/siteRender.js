@@ -3,6 +3,7 @@ const path = require('path');
 
 const DIR = path.join(__dirname, '..', 'templates', 'website');
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const FRONT = String(process.env.FRONTEND_URL || 'https://edunova-frontend-gkaj.vercel.app').replace(/\/+$/, '');
 const cache = {};
 let slugCache = null;
 
@@ -69,7 +70,16 @@ const list = () => slugs().map((slug) => {
   const d = (k) => (m.fields.find((x) => x.key === k) || {}).default || '';
   return { slug, name: m.name, description: m.description, primary_color: d('primary_color'), accent_color: d('accent_color') };
 });
-const schema = (slug) => { const t = load(slug); return t ? { slug, name: t.meta.name, description: t.meta.description, fields: t.meta.fields, lists: t.meta.lists || [] } : null; };
+const schema = (slug) => {
+  const t = load(slug);
+  if (!t) return null;
+  const sm = t.meta.sample || {};
+  return {
+    slug, name: t.meta.name, description: t.meta.description,
+    fields: t.meta.fields.map((f) => ({ ...f, has_sample: !!(sm.fields && sm.fields[f.key]) })),
+    lists: (t.meta.lists || []).map((l) => ({ ...l, has_sample: !!(sm.lists && sm.lists[l.key] && sm.lists[l.key].length) })),
+  };
+};
 
 // Input looks like { fields: {...}, lists: { staff: [{...}] } }. Output is the safe version.
 const clean = (slug, input) => {
@@ -92,9 +102,32 @@ const clean = (slug, input) => {
   return { fields, lists };
 };
 
+// School data overrides the template's built-in sample content, field by field.
+// '@file.jpg' in a sample value points at a photo hosted by the frontend.
+const sampleUrl = (v) => (typeof v === 'string' && v.charAt(0) === '@' ? FRONT + '/images/site-samples/' + v.slice(1) : v);
+const withSample = (t, d) => {
+  const sm = t.meta.sample || {};
+  const fields = { ...d.fields }, lists = { ...d.lists }, flags = {};
+  Object.keys(sm.fields || {}).forEach((k) => {
+    if (!fields[k]) { fields[k] = sampleUrl(sm.fields[k]); flags[k] = true; }
+  });
+  Object.keys(sm.lists || {}).forEach((k) => {
+    if (!(lists[k] && lists[k].length)) {
+      lists[k] = sm.lists[k].map((it) => { const o = { is_sample: '1' }; Object.keys(it).forEach((x) => { o[x] = sampleUrl(it[x]); }); return o; });
+      flags[k] = true;
+    }
+  });
+  fields.school_initial = String(fields.school_name || '').trim().charAt(0).toUpperCase();
+  fields.stats_any = (fields.student_count || fields.teacher_count || fields.year_founded) ? '1' : '';
+  const y = /^\d{4}$/.test(fields.year_founded || '') ? new Date().getFullYear() - Number(fields.year_founded) : 0;
+  fields.years_open = y > 0 && y < 300 ? String(y) : '';
+  return { fields, lists, flags };
+};
+
 const out = (nodes, c) => nodes.map((n) => {
   if (n.t !== undefined) {
     return n.t.replace(/\{\{\s*([a-z0-9_.]+)\s*\}\}/g, (_, k) => {
+      if (k.startsWith('raw.')) { const rv = c.raw ? c.raw[k.slice(4)] : ''; return rv == null ? '' : esc(rv); }
       const item = k.startsWith('item.');
       const raw = item ? (c.item ? c.item[k.slice(5)] : '') : c.fields[k];
       if (raw == null) return '';
@@ -104,7 +137,9 @@ const out = (nodes, c) => nodes.map((n) => {
   }
   if (n.kind === 'IF') {
     const item = n.key.startsWith('item.');
-    const v = item ? (c.item ? c.item[n.key.slice(5)] : '') : (c.lists[n.key] ? c.lists[n.key].length : c.fields[n.key]);
+    const v = n.key.startsWith('sample.') ? (c.sample && c.sample[n.key.slice(7)] ? 1 : '')
+      : n.key.startsWith('raw.') ? (c.raw ? c.raw[n.key.slice(4)] : '')
+      : item ? (c.item ? c.item[n.key.slice(5)] : '') : (c.lists[n.key] ? c.lists[n.key].length : c.fields[n.key]);
     return v !== undefined && v !== null && String(v) !== '' && v !== 0 ? out(n.kids, c) : '';
   }
   const types = c.listTypes[n.key] || {};
@@ -118,7 +153,8 @@ const render = (slug, input, opts) => {
   const types = {}, listTypes = {};
   t.meta.fields.forEach((f) => { types[f.key] = f.type; });
   (t.meta.lists || []).forEach((l) => { listTypes[l.key] = {}; l.fields.forEach((f) => { listTypes[l.key][f.key] = f.type; }); });
-  let html = out(t.tree.kids, { fields: d.fields, lists: d.lists, types, listTypes });
+  const m = withSample(t, d);
+  let html = out(t.tree.kids, { fields: m.fields, lists: m.lists, raw: d.fields, sample: m.flags, types, listTypes });
   html = html.replace(/<title>([^<]*?)\s*\|\s*<\/title>/, '<title>$1</title>');
   const nonce = opts && opts.nonce;
   if (nonce) html = html.replace(/<script(?=[\s>])/g, () => '<script nonce="' + nonce + '"');
@@ -126,7 +162,7 @@ const render = (slug, input, opts) => {
   return html;
 };
 
-const sample = (slug) => ({
+const sample = (slug) => (load(slug) && load(slug).meta.sample ? { fields: { school_name: 'Greenfield International School' }, lists: {} } : {
   fields: { school_name: 'Greenfield Academy', tagline: 'Learning that lasts a lifetime', about_text: 'A friendly school where every child is known by name and encouraged to grow.', mission: 'To help every learner grow in knowledge, character and confidence.', address: '12 School Road, Abeokuta, Ogun State', phone: '+234 801 234 5678', email: 'info@greenfield.example.com', whatsapp: '2348012345678', facebook_url: 'https://facebook.com/greenfield', instagram_url: 'https://instagram.com/greenfield', year_founded: '1998', student_count: '420', teacher_count: '28', apply_url: 'https://example.com/apply', login_url: 'https://example.com/login', footer_text: 'Greenfield Academy. All rights reserved.' },
   lists: {
     programs: [{ title: 'Primary', description: 'A caring start for ages 5 to 11.' }, { title: 'Junior Secondary', description: 'Building strong foundations.' }, { title: 'Senior Secondary', description: 'Preparing for WAEC and beyond.' }],

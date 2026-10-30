@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{school_name}} | {{tagline}}</title>
+  <meta name="description" content="{{tagline}}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+
+    #school-site{--primary:#123b63;--accent:#d8b56d;--green:#08734e;--ink:#183047;--muted:#64748b;--pale:#f1f6fa;font-family:"DM Sans",sans-serif;color:var(--ink);line-height:1.6;background:#fff}
+    #school-site *{box-sizing:border-box}#school-site img{display:block;width:100%;object-fit:cover}#school-site a{color:inherit;text-decoration:none}#school-site button{font:inherit}
+    #school-site .container{width:min(1180px,calc(100% - 36px));margin:auto}
+    #school-site h1,#school-site h2,#school-site h3{font-family:Manrope,sans-serif;line-height:1.15;letter-spacing:-.035em;margin:0}
+    #school-site h1{font-size:clamp(2.4rem,6vw,4.7rem);font-weight:800}#school-site h2{font-size:clamp(1.8rem,4vw,2.7rem)}#school-site h3{font-size:1.15rem}
+    #school-site p{margin:0}#school-site .muted{color:var(--muted)}#school-site .eyebrow{font-size:.75rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--green)}
+    #school-site .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:9px;font-size:.88rem;font-weight:700;border:1px solid var(--primary);transition:.2s}
+    #school-site .btn:hover{transform:translateY(-2px)}#school-site .btn.primary{background:var(--primary);color:#fff}#school-site .btn.light{background:#fff;color:var(--primary)}#school-site .btn.outline{color:#fff;border-color:#ffffffa8}
+    #school-site .topbar{background:#fff;border-bottom:1px solid #e8edf2;position:sticky;top:0;z-index:20}
+    #school-site .navrow{height:76px;display:flex;align-items:center;justify-content:space-between;gap:22px}
+    #school-site .brand{display:flex;align-items:center;gap:10px;font-family:Manrope,sans-serif;font-weight:800;color:var(--primary);line-height:1.1}
+    #school-site .brandmark{height:43px;width:43px;border-radius:12px;background:var(--primary);color:#fff;display:grid;place-items:center;font-size:1.2rem;overflow:hidden}#school-site .brandmark img{height:100%;width:100%;object-fit:contain;background:#fff}
+    #school-site .brand small{display:block;font:600 .7rem "DM Sans",sans-serif;color:var(--muted);letter-spacing:.04em}
+    #school-site nav{display:none;align-items:center;gap:22px;font-size:.86rem;font-weight:600}
+    #school-site nav a:hover{color:var(--green)}#school-site .nav-actions{display:flex;gap:8px;align-items:center}
+    #school-site .menu{display:inline-grid;place-items:center;width:42px;height:42px;border:1px solid #dbe3ea;border-radius:9px;background:white;color:var(--primary);font-size:1.2rem}
+    #school-site .mobile-nav{display:none;padding:0 0 18px;gap:14px;flex-direction:column;font-weight:600;font-size:.92rem}
+    #school-site .mobile-nav.open{display:flex}
+    #school-site .hero{background:linear-gradient(90deg,rgba(6,27,44,.92),rgba(6,27,44,.58) 48%,rgba(6,27,44,.08)),var(--hero) center 43%/cover;color:#fff;position:relative}
+    #school-site .hero-inner{min-height:540px;display:flex;align-items:center;padding:70px 0}
+    #school-site .hero-copy{max-width:650px;display:grid;gap:22px}
+    #school-site .hero .eyebrow{color:#f1d69b}#school-site .hero p{max-width:510px;color:#eef4f8;font-size:1.05rem}
+    #school-site .actions{display:flex;gap:12px;flex-wrap:wrap}
+    #school-site .trustline{display:flex;gap:22px;flex-wrap:wrap;color:#e4edf4;font-size:.8rem;font-weight:600}
+    #school-site .section{padding:82px 0}#school-site .section-head{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:30px}
+    #school-site .section-head>div{display:grid;gap:9px}#school-site .section-head p{max-width:540px;color:var(--muted)}
+    #school-site .about-grid{display:grid;gap:32px;align-items:center}
+    #school-site .about-photo{position:relative;height:330px;border-radius:22px;overflow:hidden}
+    #school-site .about-photo img{height:100%}
+    #school-site .about-copy{display:grid;gap:18px}
+    #school-site .mission{background:#eef6f1;border-left:4px solid var(--green);padding:22px;border-radius:0 16px 16px 0}
+    #school-site .mini-stats{display:flex;gap:25px;flex-wrap:wrap;padding-top:8px}
+    #school-site .mini-stats strong{display:block;color:var(--primary);font:800 1.35rem Manrope,sans-serif}
+    #school-site .mini-stats span{font-size:.76rem;color:var(--muted)}
+    #school-site .programs{background:var(--pale)}
+    #school-site .cards{display:grid;grid-template-columns:1fr;gap:16px}
+    #school-site .program-card{background:#fff;border:1px solid #e5ebf0;border-radius:16px;padding:24px;display:grid;gap:18px;box-shadow:0 8px 22px rgba(16,48,75,.04)}
+    #school-site .icon{height:44px;width:44px;display:grid;place-items:center;background:#eaf3f8;color:var(--primary);border-radius:13px;font-size:1.3rem}#school-site .program-card:nth-child(4n+1) .icon::before{content:"\273F"}#school-site .program-card:nth-child(4n+2) .icon::before{content:"\25A4"}#school-site .program-card:nth-child(4n+3) .icon::before{content:"\2318"}#school-site .program-card:nth-child(4n+4) .icon::before{content:"\265C"}
+    #school-site .program-card p{color:var(--muted);font-size:.9rem}
+    #school-site .stats{background:var(--primary);color:#fff;padding:45px 0}
+    #school-site .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:28px}
+    #school-site .stat strong{display:block;font:800 clamp(2rem,5vw,3rem) Manrope,sans-serif;letter-spacing:-.05em}
+    #school-site .stat span{color:#d7e4ef;font-size:.83rem}
+    #school-site .gallery-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    #school-site .gallery-grid figure{margin:0;position:relative;height:175px;border-radius:14px;overflow:hidden}#school-site .gallery-grid img{height:100%}
+    #school-site .gallery-grid figure:first-child{grid-column:span 2;height:230px}
+    #school-site .staff-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px}
+    #school-site .staff-card{border:1px solid #e7edf2;border-radius:16px;overflow:hidden;background:#fff}
+    #school-site .staff-photo{position:relative;height:190px;background:var(--pale)}#school-site .staff-card img{height:190px}
+    #school-site .staff-info{padding:15px}#school-site .staff-info p{font-size:.82rem;color:var(--muted);margin-top:4px}
+    #school-site .testimonials{background:#f7f8fa}
+    #school-site .quote-grid{display:grid;gap:16px}
+    #school-site .quote{background:#fff;border:1px solid #e8edf2;padding:24px;border-radius:16px}
+    #school-site .quote .stars{color:#c49335;letter-spacing:2px;margin-bottom:12px}
+    #school-site .quote blockquote{margin:0 0 18px;font-family:Manrope,sans-serif;font-weight:600}
+    #school-site .quote cite{font-style:normal;color:var(--muted);font-size:.85rem}
+    #school-site .news-grid{display:grid;gap:16px}
+    #school-site .news-card{border:1px solid #e7edf2;border-radius:16px;overflow:hidden}
+    #school-site .news-photo{position:relative;height:180px;background:var(--pale)}#school-site .news-card img{height:180px}
+    #school-site .news-copy{padding:18px;display:grid;gap:9px}
+    #school-site .date{font-size:.74rem;color:var(--green);font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+    #school-site .news-copy p{font-size:.87rem;color:var(--muted)}
+    #school-site .contact{background:var(--pale)}
+    #school-site .contact-grid{display:grid;gap:28px}
+    #school-site .contact-details{display:grid;gap:15px}
+    #school-site .contact-item{display:flex;gap:12px;align-items:flex-start}
+    #school-site .contact-item b{display:block;font-size:.9rem}
+    #school-site .contact-item span{font-size:.88rem;color:var(--muted)}
+    #school-site form{background:#fff;padding:24px;border-radius:18px;box-shadow:0 10px 30px rgba(16,48,75,.06);display:grid;gap:13px}
+    #school-site label{font-size:.82rem;font-weight:700}
+    #school-site input,#school-site textarea{width:100%;padding:12px 13px;border:1px solid #dce4eb;border-radius:9px;font:inherit;font-size:.9rem;margin-top:5px}
+    #school-site textarea{min-height:105px;resize:vertical}
+    #school-site footer{background:#0d2e4d;color:#e9f1f7;padding:28px 0}
+    #school-site .footer-row{display:flex;flex-direction:column;gap:16px;justify-content:space-between;font-size:.82rem}
+    #school-site .footer-links{display:flex;gap:18px;flex-wrap:wrap}
+    @media(min-width:760px){
+      #school-site nav{display:flex}#school-site .menu{display:none}#school-site .mobile-nav{display:none!important}
+      #school-site .about-grid{grid-template-columns:1fr 1fr}#school-site .cards{grid-template-columns:repeat(4,1fr)}
+      #school-site .stats-grid{grid-template-columns:repeat(4,1fr)}#school-site .gallery-grid{grid-template-columns:1.2fr 1fr 1fr 1fr}
+      #school-site .gallery-grid figure:first-child{grid-column:span 1;height:175px}
+      #school-site .staff-grid{grid-template-columns:repeat(4,1fr)}#school-site .quote-grid{grid-template-columns:repeat(3,1fr)}
+      #school-site .news-grid{grid-template-columns:repeat(3,1fr)}#school-site .contact-grid{grid-template-columns:1fr 1fr}
+      #school-site .footer-row{flex-direction:row;align-items:center}
+    }
+    @media(prefers-reduced-motion:reduce){#school-site *{scroll-behavior:auto!important;transition:none!important}}
+  
+    #school-site{--primary:{{primary_color}};--accent:{{accent_color}}}
+    #school-site .sample-tag{position:absolute;left:8px;bottom:8px;z-index:2;background:rgba(15,23,42,.72);color:#fff;font:600 .66rem "DM Sans",sans-serif;letter-spacing:.03em;padding:3px 8px;border-radius:999px}
+    #school-site .hero .sample-tag{left:auto;right:14px;bottom:14px}
+    #school-site .sample-note{display:inline-block;margin-top:6px;font:600 .68rem "DM Sans",sans-serif;color:#8a5a00;background:#fff3d6;border-radius:999px;padding:2px 9px}
+    #school-site .quote .sample-note,#school-site .news-copy .sample-note,#school-site .staff-info .sample-note{margin-top:8px}
+    #school-site .contact-item .sample-note{display:block;width:fit-content;margin-top:4px}
+    #school-site .quote-grid>.quote,#school-site .news-grid>.news-card{min-width:0}
+    #school-site .social{display:flex;gap:16px}
+
+  </style>
+</head>
+<body>
+<div id="school-site">
+  <header class="topbar">
+    <div class="container navrow">
+      <a class="brand" href="#home"><span class="brandmark"><!--IF:logo_url--><img src="{{logo_url}}" alt="{{school_name}} logo"><!--ENDIF:logo_url--><span class="ini">{{school_initial}}</span></span><span>{{school_name}}</span></a>
+      <nav aria-label="Main navigation">
+        <a href="#home">Home</a><a href="#about">About</a><a href="#programs">Programs</a><a href="#gallery">Gallery</a><a href="#staff">Staff</a><a href="#news">News</a><a href="#contact">Contact</a>
+      </nav>
+      <div class="nav-actions"><!--IF:login_url--><a class="btn light" href="{{login_url}}">Login</a><!--ENDIF:login_url--><!--IF:apply_url--><a class="btn primary" href="{{apply_url}}">Apply Now</a><!--ENDIF:apply_url--><button class="menu" type="button" aria-label="Open menu" aria-expanded="false">&#9776;</button></div>
+    </div>
+    <div class="container mobile-nav" id="mobile-nav"><a href="#about">About</a><a href="#programs">Programs</a><a href="#gallery">Gallery</a><a href="#staff">Staff</a><a href="#news">News</a><a href="#contact">Contact</a></div>
+  </header>
+  <main id="home">
+    <section class="hero" style="--hero:url('{{hero_image_url}}')">
+      <div class="container hero-inner"><div class="hero-copy">
+        <span class="eyebrow">Learn &middot; Grow &middot; Lead</span>
+        <h1>{{tagline}}</h1>
+        <p>At {{school_name}}, we provide a nurturing and challenging environment where every student can discover their strengths, build confidence and reach their full potential.</p>
+        <div class="actions"><!--IF:apply_url--><a class="btn primary" href="{{apply_url}}">Apply Now &#8599;</a><!--ENDIF:apply_url--><!--IF:login_url--><a class="btn outline" href="{{login_url}}">Portal Login</a><!--ENDIF:login_url--></div>
+        <div class="trustline"><span>&#10003; Student-centred learning</span><span>&#10003; Dedicated educators</span><span>&#10003; Strong values</span></div>
+      </div></div>
+      <!--IF:sample.hero_image_url--><span class="sample-tag">Sample image</span><!--ENDIF:sample.hero_image_url-->
+    </section>
+    <section class="section" id="about"><div class="container about-grid">
+      <div class="about-photo"><img src="{{about_image_url}}" alt="School campus" loading="lazy"><!--IF:sample.about_image_url--><span class="sample-tag">Sample image</span><!--ENDIF:sample.about_image_url--></div>
+      <div class="about-copy"><span class="eyebrow">Welcome to {{school_name}}</span><h2>A school where every learner belongs.</h2>
+        <p class="muted">{{about_text}}</p>
+        <div class="mission"><b>Our mission</b><p class="muted">{{mission}}</p></div>
+        <!--IF:stats_any--><div class="mini-stats"><!--IF:year_founded--><div><strong>{{year_founded}}</strong><span>Year founded</span></div><!--ENDIF:year_founded--><!--IF:student_count--><div><strong>{{student_count}}</strong><span>Students</span></div><!--ENDIF:student_count--><!--IF:teacher_count--><div><strong>{{teacher_count}}</strong><span>Teachers</span></div><!--ENDIF:teacher_count--></div><!--ENDIF:stats_any-->
+        <a class="btn primary" href="#programs">Explore our programs</a>
+      </div>
+    </div></section>
+    <section class="section programs" id="programs"><div class="container">
+      <div class="section-head"><div><span class="eyebrow">Learning pathways</span><h2>Programs for every stage.</h2><p>Our learning pathways nurture curiosity, confidence and a lifelong love of learning.</p></div></div>
+      <div class="cards">
+        <!--EACH:programs--><article class="program-card"><span class="icon" aria-hidden="true"></span><div><h3>{{item.title}}</h3><p>{{item.description}}</p></div></article><!--ENDEACH:programs-->
+      </div>
+    </div></section>
+    <!--IF:stats_any-->
+    <section class="stats"><div class="container stats-grid">
+      <!--IF:student_count--><div class="stat"><strong>{{student_count}}</strong><span>Students enrolled</span></div><!--ENDIF:student_count-->
+      <!--IF:teacher_count--><div class="stat"><strong>{{teacher_count}}</strong><span>Teachers</span></div><!--ENDIF:teacher_count-->
+      <!--IF:year_founded--><div class="stat"><strong>{{year_founded}}</strong><span>Year founded</span></div><!--ENDIF:year_founded-->
+      <!--IF:years_open--><div class="stat"><strong>{{years_open}}</strong><span>Years of learning</span></div><!--ENDIF:years_open-->
+    </div></section>
+    <!--ENDIF:stats_any-->
+    <section class="section" id="gallery"><div class="container">
+      <div class="section-head"><div><span class="eyebrow">Life at school</span><h2>Learning beyond the classroom.</h2><p>A glimpse into the experiences, friendships and discoveries that shape school life.</p></div><a class="btn light" href="#contact">Visit our campus</a></div>
+      <div class="gallery-grid">
+        <!--EACH:gallery--><!--IF:item.image_url--><figure><img src="{{item.image_url}}" alt="{{item.caption}}" loading="lazy"><!--IF:item.is_sample--><span class="sample-tag">Sample image</span><!--ENDIF:item.is_sample--></figure><!--ENDIF:item.image_url--><!--ENDEACH:gallery-->
+      </div>
+    </div></section>
+    <section class="section programs" id="staff"><div class="container">
+      <div class="section-head"><div><span class="eyebrow">Our people</span><h2>Meet our dedicated educators.</h2><p>Experienced professionals who bring care, expertise and energy to every learning experience.</p></div></div>
+      <div class="staff-grid">
+        <!--EACH:staff--><article class="staff-card"><div class="staff-photo"><!--IF:item.photo_url--><img src="{{item.photo_url}}" alt="{{item.name}}" loading="lazy"><!--ENDIF:item.photo_url--><!--IF:item.is_sample--><span class="sample-tag">Sample image</span><!--ENDIF:item.is_sample--></div><div class="staff-info"><h3>{{item.name}}</h3><p>{{item.role}}</p><!--IF:item.is_sample--><span class="sample-note">Sample content, replace in your dashboard</span><!--ENDIF:item.is_sample--></div></article><!--ENDEACH:staff-->
+      </div>
+    </div></section>
+    <section class="section testimonials"><div class="container">
+      <div class="section-head"><div><span class="eyebrow">Parent perspectives</span><h2>What our community says.</h2><p>Partnership and trust are at the heart of our school community.</p></div></div>
+      <div class="quote-grid">
+        <!--EACH:testimonials--><article class="quote"><div class="stars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</div><blockquote>&ldquo;{{item.text}}&rdquo;</blockquote><cite>&mdash; {{item.name}}</cite><!--IF:item.is_sample--><br><span class="sample-note">Sample content, replace in your dashboard</span><!--ENDIF:item.is_sample--></article><!--ENDEACH:testimonials-->
+      </div>
+    </div></section>
+    <section class="section" id="news"><div class="container">
+      <div class="section-head"><div><span class="eyebrow">School bulletin</span><h2>Latest news &amp; updates.</h2><p>Highlights from recent activities and upcoming milestones.</p></div></div>
+      <div class="news-grid">
+        <!--EACH:news--><article class="news-card"><div class="news-photo"><!--IF:item.image_url--><img src="{{item.image_url}}" alt="{{item.title}}" loading="lazy"><!--ENDIF:item.image_url--><!--IF:item.is_sample--><!--IF:item.image_url--><span class="sample-tag">Sample image</span><!--ENDIF:item.image_url--><!--ENDIF:item.is_sample--></div><div class="news-copy"><!--IF:item.date--><span class="date">{{item.date}}</span><!--ENDIF:item.date--><h3>{{item.title}}</h3><p>{{item.summary}}</p><!--IF:item.is_sample--><span class="sample-note">Sample content, replace in your dashboard</span><!--ENDIF:item.is_sample--></div></article><!--ENDEACH:news-->
+      </div>
+    </div></section>
+    <section class="section contact" id="contact"><div class="container contact-grid">
+      <div class="contact-details"><span class="eyebrow">We would love to hear from you</span><h2>Let's start your journey with us.</h2><p class="muted">Contact our admissions team for enquiries, campus visits and application information.</p>
+        <!--IF:address--><div class="contact-item"><span aria-hidden="true">&#8960;</span><div><b>Address</b><span>{{address}}</span><!--IF:sample.address--><span class="sample-note">Sample content, replace in your dashboard</span><!--ENDIF:sample.address--></div></div><!--ENDIF:address-->
+        <!--IF:phone--><div class="contact-item"><span aria-hidden="true">&#9742;</span><div><b>Phone</b><span>{{phone}}</span><!--IF:sample.phone--><span class="sample-note">Sample content, replace in your dashboard</span><!--ENDIF:sample.phone--></div></div><!--ENDIF:phone-->
+        <!--IF:email--><div class="contact-item"><span aria-hidden="true">&#9993;</span><div><b>Email</b><span>{{email}}</span><!--IF:sample.email--><span class="sample-note">Sample content, replace in your dashboard</span><!--ENDIF:sample.email--></div></div><!--ENDIF:email-->
+        <!--IF:office_hours--><div class="contact-item"><span aria-hidden="true">&#9673;</span><div><b>Office hours</b><span>{{office_hours}}</span><!--IF:sample.office_hours--><span class="sample-note">Sample content, replace in your dashboard</span><!--ENDIF:sample.office_hours--></div></div><!--ENDIF:office_hours-->
+      </div>
+      <form id="enquiry-form" data-wa="{{raw.whatsapp}}" data-mail="{{raw.email}}"><h3>Send an enquiry</h3><label>Full name<input name="name" placeholder="Your full name" required maxlength="80"></label><label>Email address<input type="email" name="email" placeholder="you@example.com" required maxlength="120"></label><label>Message<textarea name="message" placeholder="How can we help?" required maxlength="1000"></textarea></label><button class="btn primary" type="submit">Send message</button><small class="muted" id="form-note" role="status"></small></form>
+    </div></section>
+  </main>
+  <footer><div class="container footer-row"><a class="brand" href="#home" style="color:white"><span>{{school_name}}</span></a><span>&copy; {{school_name}}. All rights reserved.</span><div class="footer-links"><!--IF:facebook_url--><a href="{{facebook_url}}">Facebook</a><!--ENDIF:facebook_url--><!--IF:instagram_url--><a href="{{instagram_url}}">Instagram</a><!--ENDIF:instagram_url--><a href="#home">Back to top &uarr;</a></div></div></footer>
+</div>
+<script>
+(() => {
+  const root = document.getElementById("school-site");
+  const menu = root.querySelector(".menu");
+  const mobileNav = root.querySelector("#mobile-nav");
+  menu.addEventListener("click", () => {
+    const open = menu.getAttribute("aria-expanded") === "true";
+    menu.setAttribute("aria-expanded", String(!open));
+    menu.setAttribute("aria-label", open ? "Open menu" : "Close menu");
+    mobileNav.classList.toggle("open", !open);
+  });
+  mobileNav.querySelectorAll("a").forEach(link => link.addEventListener("click", () => {
+    mobileNav.classList.remove("open");
+    menu.setAttribute("aria-expanded", "false");
+  }));
+  const form = root.querySelector("#enquiry-form");
+  const note = root.querySelector("#form-note");
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    const name = form.elements.name.value.trim();
+    const from = form.elements.email.value.trim();
+    const msg = form.elements.message.value.trim();
+    const text = "Enquiry from " + name + " (" + from + "): " + msg;
+    const wa = (form.dataset.wa || "").replace(/\D/g, "");
+    const mail = form.dataset.mail || "";
+    let url = "";
+    if (wa) url = "https://wa.me/" + wa + "?text=" + encodeURIComponent(text);
+    else if (mail) url = "mailto:" + mail + "?subject=" + encodeURIComponent("Website enquiry from " + name) + "&body=" + encodeURIComponent(text);
+    if (!url) { note.textContent = "Enquiries are not set up yet. Please use the contact details above."; return; }
+    const a = document.createElement("a");
+    a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
+    root.appendChild(a); a.click(); a.remove();
+    note.textContent = wa ? "Opening WhatsApp so you can send your message." : "Opening your email app so you can send your message.";
+    form.reset();
+  });
+})();
+</script>
+</body>
+</html>
