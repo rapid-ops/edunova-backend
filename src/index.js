@@ -87,6 +87,7 @@ app.use('/api/student-classes', require('./routes/studentclass.routes'));
 app.use('/api/course-assignments', require('./routes/courseassignment.routes'));
 // The web app calls /api/upload/...; the loader above only mounts these files at /api/uploads.
 app.use('/api/upload', require('./routes/upload.routes'));
+app.use('/api/files', require('./routes/filedelivery.routes'));
 app.use('/api/upload', require('./routes/schoolimage.routes'));
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: ORIGINS, credentials: true } });
