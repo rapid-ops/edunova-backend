@@ -105,6 +105,24 @@
     #school-site .quote-grid>.quote,#school-site .news-grid>.news-card{min-width:0}
     #school-site .social{display:flex;gap:16px}
 
+
+/* responsive hardening: content must never be wider than the screen */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{max-width:100%;overflow-x:clip}
+body{overflow-wrap:anywhere;word-break:normal}
+img,svg,video,iframe{max-width:100%}
+[class*="grid"]>*,.cards>*,.cx-two>*,.contact-row>*,.admissions-row>*,.footer-row>*{min-width:0}
+.nav-actions>*{flex-shrink:0}
+header .brand,header .logo,.header .brand,.header .logo,.topbar .brand{min-width:0;flex:0 1 auto}
+header .brand>span:last-child,header .logo>span:last-child,.header .brand>span:last-child,.header .logo>span:last-child,.topbar .brand>span:last-child{display:block;min-width:0;max-width:clamp(120px,40vw,380px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+header .brand>span:last-child strong{display:block;overflow:hidden;text-overflow:ellipsis}
+.nav,.navrow{gap:12px}
+.nav>*,.navrow>*{min-width:0}
+.nav-actions,.nav-cta{flex-shrink:0;min-width:auto}
+@media(max-width:480px){header .brand>span:last-child,header .logo>span:last-child,.header .brand>span:last-child,.header .logo>span:last-child,.topbar .brand>span:last-child{max-width:clamp(80px,30vw,200px);font-size:.95em}.nav-cta .btn:not(.gold),.nav-actions .btn.light,.nav-actions .btn.outline{display:none}}
+input,textarea,button{max-width:100%}
+.cx-item span,.contact-item span,.footer a,.footer-col a,.footer-grid a,.foot-grid a{overflow-wrap:anywhere}
+@media(max-width:480px){.cx-contact,.contact{padding-left:0;padding-right:0}#enquiry-form{padding:20px}.nav-actions .btn{padding:9px 12px;font-size:.82rem}.navrow{gap:10px}}
   </style>
 </head>
 <body>
