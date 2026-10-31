@@ -9,6 +9,7 @@ const ORDER = `ORDER BY CASE t.day_of_week
   WHEN 'Friday' THEN 5 END, t.start_time`;
 
 // Create timetable entry
+router.post('/', protect, (req, res) => res.status(403).json({ error: 'Lecture times are set by teachers.' }));
 router.post('/', protect, authorize('super_admin','school_admin'), async (req, res) => {
   const { class_id, course_id, teacher_id, day_of_week, start_time, end_time } = req.body;
   try {
