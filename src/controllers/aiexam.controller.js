@@ -48,7 +48,7 @@ const norm = (r, slot) => {
 
 const generateExam = async (req, res) => {
   const b = req.body || {};
-  const topic = typeof b.topic === 'string' ? clean(b.topic, 200) : '';
+  const topic = typeof b.topic === 'string' ? clean(b.topic, 800) : '';
   if (!topic) return res.status(400).json({ error: 'Type a topic first.' });
   const level = typeof b.level === 'string' ? clean(b.level, 60) : '';
   const slots = (Array.isArray(b.slots) ? b.slots : []).slice(0, 12).map((s) => ({ type: s && s.type, difficulty: s && s.difficulty, flat: !!b.flat_marks }));
@@ -57,10 +57,14 @@ const generateExam = async (req, res) => {
   }
   const sid = req.user.school_id;
   if (sid == null) return res.status(403).json({ error: 'Access denied' });
-  if (!/^\d+$/.test(String(b.assessment_id))) return res.status(400).json({ error: 'Open a quiz first.' });
+  const hasQuiz = /^\d+$/.test(String(b.assessment_id));
+  if (!hasQuiz && !/^\d+$/.test(String(b.course_id))) return res.status(400).json({ error: 'Choose a course first.' });
   try {
-    const a = await pool.query('SELECT course_id FROM assessments WHERE id=$1', [b.assessment_id]);
-    const course_id = a.rows[0] ? a.rows[0].course_id : null;
+    let course_id = null;
+    if (hasQuiz) {
+      const a = await pool.query('SELECT course_id FROM assessments WHERE id=$1', [b.assessment_id]);
+      course_id = a.rows[0] ? a.rows[0].course_id : null;
+    } else { course_id = Number(b.course_id); }
     if (!course_id) return res.status(404).json({ error: 'That quiz could not be found.' });
     const c = await pool.query('SELECT id, school_id FROM courses WHERE id=$1', [course_id]);
     if (!c.rows[0] || Number(c.rows[0].school_id) !== Number(sid) || !(await T.canManageCourse(req.user, c.rows[0]))) {
