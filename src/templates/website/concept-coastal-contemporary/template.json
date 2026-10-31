@@ -1,0 +1,265 @@
+{
+  "name": "Coastal Contemporary",
+  "slug": "concept-coastal-contemporary",
+  "description": "Fresh and airy. Ocean blue with coral accents and generous space, suited to modern day schools.",
+  "fields": [
+    {
+      "key": "school_name",
+      "label": "School name",
+      "type": "text",
+      "required": true,
+      "default": ""
+    },
+    {
+      "key": "tagline",
+      "label": "Tagline",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_text",
+      "label": "About the school",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "logo_url",
+      "label": "Logo image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "hero_image_url",
+      "label": "Hero image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_image_url",
+      "label": "About image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "campus_image_url",
+      "label": "Campus life image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "primary_color",
+      "label": "Primary colour",
+      "type": "color",
+      "required": false,
+      "default": "#176b87"
+    },
+    {
+      "key": "accent_color",
+      "label": "Accent colour",
+      "type": "color",
+      "required": false,
+      "default": "#f27b62"
+    },
+    {
+      "key": "address",
+      "label": "School address",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "phone",
+      "label": "Phone number",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "email",
+      "label": "Email address",
+      "type": "email",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "office_hours",
+      "label": "Office hours",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "whatsapp",
+      "label": "WhatsApp number (enquiries go here)",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "facebook_url",
+      "label": "Facebook link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "instagram_url",
+      "label": "Instagram link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "year_founded",
+      "label": "Year founded",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "student_count",
+      "label": "Number of students",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "teacher_count",
+      "label": "Number of teachers",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "apply_url",
+      "label": "Apply link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "login_url",
+      "label": "Portal login link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "lists": [
+    {
+      "key": "programs",
+      "label": "Programs",
+      "max": 6,
+      "fields": [
+        {
+          "key": "label",
+          "label": "Stage label",
+          "type": "text"
+        },
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "description",
+          "label": "Description",
+          "type": "textarea"
+        },
+        {
+          "key": "image_url",
+          "label": "Image",
+          "type": "image"
+        }
+      ]
+    },
+    {
+      "key": "news",
+      "label": "News",
+      "max": 6,
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "date",
+          "label": "Date",
+          "type": "date"
+        },
+        {
+          "key": "summary",
+          "label": "Summary",
+          "type": "textarea"
+        },
+        {
+          "key": "image_url",
+          "label": "Image",
+          "type": "image"
+        }
+      ]
+    }
+  ],
+  "sample": {
+    "fields": {
+      "tagline": "Building curious minds. Shaping brighter futures.",
+      "about_text": "We believe a great education is about more than what happens in a classroom. It is about confidence, character, creativity and the courage to explore what comes next.",
+      "hero_image_url": "@hero.jpg",
+      "about_image_url": "@pupils.jpg",
+      "campus_image_url": "@sports.jpg",
+      "address": "123 Education Road, Your City",
+      "phone": "+234 800 000 0000",
+      "email": "info@yourschool.example",
+      "office_hours": "Monday to Friday, 8:00am to 4:00pm"
+    },
+    "lists": {
+      "programs": [
+        {
+          "label": "Early years",
+          "title": "Wonder begins here.",
+          "description": "Playful exploration and warm guidance help young learners build confidence and a love of discovery.",
+          "image_url": "@early.jpg"
+        },
+        {
+          "label": "Primary school",
+          "title": "Strong roots, bold ideas.",
+          "description": "Engaging lessons and practical experiences develop essential skills and independent thinking.",
+          "image_url": "@classroom.jpg"
+        },
+        {
+          "label": "Secondary school",
+          "title": "Ready for what’s next.",
+          "description": "Academic challenge, mentorship and wider opportunities prepare students for their future.",
+          "image_url": "@senior.jpg"
+        }
+      ],
+      "news": [
+        {
+          "title": "Learning comes alive through collaboration.",
+          "image_url": "@junior.jpg",
+          "date": "",
+          "summary": "See how shared projects help learners exchange ideas and build confidence."
+        },
+        {
+          "title": "A celebration of creativity and expression.",
+          "image_url": "",
+          "date": "",
+          "summary": "Our learners share their talents, ideas and imagination with the school community."
+        },
+        {
+          "title": "Take the first step on your school journey.",
+          "image_url": "",
+          "date": "",
+          "summary": "Find out about admissions, school visits and the next steps for families."
+        }
+      ]
+    }
+  }
+}

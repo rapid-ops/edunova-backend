@@ -1,0 +1,257 @@
+{
+  "name": "Bold Urban Academic",
+  "slug": "concept-bold-urban-academic",
+  "description": "Bold, high-contrast and confident. Black, lime and orange with strong type, suited to ambitious secondary schools.",
+  "fields": [
+    {
+      "key": "school_name",
+      "label": "School name",
+      "type": "text",
+      "required": true,
+      "default": ""
+    },
+    {
+      "key": "tagline",
+      "label": "Tagline",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_text",
+      "label": "About the school",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "logo_url",
+      "label": "Logo image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "hero_image_url",
+      "label": "Hero image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "about_image_url",
+      "label": "About image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "experience_image_url",
+      "label": "Student life image",
+      "type": "image",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "primary_color",
+      "label": "Primary colour",
+      "type": "color",
+      "required": false,
+      "default": "#151719"
+    },
+    {
+      "key": "accent_color",
+      "label": "Accent colour",
+      "type": "color",
+      "required": false,
+      "default": "#f06a42"
+    },
+    {
+      "key": "address",
+      "label": "School address",
+      "type": "textarea",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "phone",
+      "label": "Phone number",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "email",
+      "label": "Email address",
+      "type": "email",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "office_hours",
+      "label": "Office hours",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "whatsapp",
+      "label": "WhatsApp number (enquiries go here)",
+      "type": "phone",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "facebook_url",
+      "label": "Facebook link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "instagram_url",
+      "label": "Instagram link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "year_founded",
+      "label": "Year founded",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "student_count",
+      "label": "Number of students",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "teacher_count",
+      "label": "Number of teachers",
+      "type": "number",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "apply_url",
+      "label": "Apply link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "login_url",
+      "label": "Portal login link",
+      "type": "url",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "lists": [
+    {
+      "key": "programs",
+      "label": "Programs",
+      "max": 6,
+      "fields": [
+        {
+          "key": "label",
+          "label": "Stage label",
+          "type": "text"
+        },
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "description",
+          "label": "Description",
+          "type": "textarea"
+        }
+      ]
+    },
+    {
+      "key": "news",
+      "label": "News",
+      "max": 6,
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "date",
+          "label": "Date",
+          "type": "date"
+        },
+        {
+          "key": "summary",
+          "label": "Summary",
+          "type": "textarea"
+        },
+        {
+          "key": "image_url",
+          "label": "Image",
+          "type": "image"
+        }
+      ]
+    }
+  ],
+  "sample": {
+    "fields": {
+      "tagline": "Curiosity is a serious advantage.",
+      "about_text": "School should open doors. It should challenge assumptions, spark interests and help every learner discover what they can contribute to the world.",
+      "hero_image_url": "@activity.jpg",
+      "about_image_url": "@classroom.jpg",
+      "experience_image_url": "@sports.jpg",
+      "address": "123 Education Road, Your City",
+      "phone": "+234 800 000 0000",
+      "email": "info@yourschool.example",
+      "office_hours": "Monday to Friday, 8:00am to 4:00pm"
+    },
+    "lists": {
+      "programs": [
+        {
+          "label": "01 / EARLY YEARS",
+          "title": "Start with wonder.",
+          "description": "Curiosity-led experiences help young learners build language, confidence and a joyful foundation for school."
+        },
+        {
+          "label": "02 / PRIMARY",
+          "title": "Build your voice.",
+          "description": "Strong foundations, practical discovery and supportive teaching develop capable, independent learners."
+        },
+        {
+          "label": "03 / SECONDARY",
+          "title": "Shape your future.",
+          "description": "Academic ambition, mentorship and real-world experiences prepare students for life beyond school."
+        }
+      ],
+      "news": [
+        {
+          "title": "When great questions lead to brilliant discoveries.",
+          "image_url": "@junior.jpg",
+          "date": "",
+          "summary": "See how hands-on projects bring classroom learning into the world around us."
+        },
+        {
+          "title": "A school community built on belonging.",
+          "image_url": "",
+          "date": "",
+          "summary": "Discover the relationships and shared values that make our school a place to thrive."
+        },
+        {
+          "title": "Your next chapter could start here.",
+          "image_url": "",
+          "date": "",
+          "summary": "Explore the admissions journey and arrange a conversation with our team."
+        }
+      ]
+    }
+  }
+}
