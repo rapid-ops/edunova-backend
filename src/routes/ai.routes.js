@@ -5,6 +5,7 @@ const { canSeeStudent } = require('../utils/access');
 const c = require('../controllers/ai.controller');
 const a = require('../controllers/aiassistant.controller');
 const qz = require('../controllers/aiquiz.controller');
+const ex = require('../controllers/aiexam.controller');
 
 const seeStudent = (staff) => async (req, res, next) => {
   try {
@@ -25,6 +26,7 @@ router.delete('/school-admin-chats/:id', protect, admin, a.deleteChat);
 router.get('/course-generations/:id', protect, authorize('teacher', 'school_admin'), require('../controllers/aicoursestatus.controller').status);
 router.use(aiLimiter);
 router.post('/generate-quiz', protect, authorize('teacher', 'school_admin'), qz.generateQuiz);
+router.post('/generate-exam', protect, authorize('teacher', 'school_admin'), ex.generateExam);
 router.post('/generate-course', protect, authorize('teacher', 'school_admin'), c.generateCourse);
 router.post('/teacher-copilot', protect, authorize('teacher', 'school_admin'), a.teacherCopilot);
 router.post('/school-admin-query', protect, admin, a.schoolAdminQuery);
