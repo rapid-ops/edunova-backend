@@ -3,20 +3,25 @@ const axios = require('axios');
 const pool = require('../config/db');
 const { protect, authorize } = require('../middleware/auth.middleware');
 const { validId, sameSchool } = require('../utils/access');
+const { getPlans, getPlansMap } = require('../utils/billing');
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 
-const PLANS = {
-  basic: { name: 'Basic', amount: 5000, description: 'Up to 100 students' },
-  standard: { name: 'Standard', amount: 15000, description: 'Up to 500 students' },
-  premium: { name: 'Premium', amount: 30000, description: 'Unlimited students' },
-};
+// Public: the plans a school can buy (set by the platform owner)
+router.get('/plans', async (req, res) => {
+  try {
+    res.json({ plans: await getPlans(true) });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not load the plans' });
+  }
+});
 
 // Get subscription status (own school only)
 router.get('/school/:school_id', protect, async (req, res) => {
   try {
     if (!validId(req.params.school_id)) return res.status(404).json({ error: 'School not found' });
     if (!sameSchool(req.user, req.params.school_id)) return res.status(403).json({ error: 'Access denied' });
+    const PLANS = await getPlansMap(true);
     const result = await pool.query(
       `SELECT * FROM subscriptions WHERE school_id=$1 ORDER BY created_at DESC LIMIT 1`,
       [req.params.school_id]
@@ -43,7 +48,9 @@ router.post('/subscribe', protect, authorize('super_admin', 'school_admin'), asy
   try {
     if (!PAYSTACK_SECRET) return res.status(500).json({ error: 'Payments are not set up yet' });
     const { plan } = req.body;
+    const PLANS = await getPlansMap(true);
     if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan' });
+    if (!(PLANS[plan].amount >= 100)) return res.status(400).json({ error: 'This plan cannot be bought online. Contact support.' });
     let school_id = req.user.school_id;
     if (req.user.role === 'super_admin') {
       if (!validId(req.body.school_id)) return res.status(400).json({ error: 'school_id required' });
@@ -59,7 +66,7 @@ router.post('/subscribe', protect, authorize('super_admin', 'school_admin'), asy
       {
         email,
         amount: PLANS[plan].amount * 100,
-        metadata: { school_id, plan, type: 'subscription' },
+        metadata: { school_id, plan, type: 'subscription', amount: PLANS[plan].amount },
         callback_url: `${process.env.FRONTEND_URL}/subscription/verify`,
       },
       { headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` } }
@@ -86,13 +93,16 @@ router.get('/verify/:reference', protect, authorize('super_admin', 'school_admin
     const data = response.data.data;
     if (data.status !== 'success') return res.json({ success: false });
 
+    const PLANS = await getPlansMap(false);
     const meta = data.metadata || {};
     const plan = meta.plan;
     if (meta.type !== 'subscription' || !PLANS[plan] || !validId(meta.school_id)) {
       return res.json({ success: false, message: 'This payment is not a subscription' });
     }
     if (!sameSchool(req.user, meta.school_id)) return res.status(403).json({ error: 'Access denied' });
-    if ((data.currency && data.currency !== 'NGN') || Number(data.amount) < PLANS[plan].amount * 100) {
+    // The price agreed when the payment was started (the owner may change prices in between)
+    const expected = Number(meta.amount) > 0 ? Number(meta.amount) : PLANS[plan].amount;
+    if ((data.currency && data.currency !== 'NGN') || Number(data.amount) < expected * 100) {
       return res.json({ success: false, message: 'The amount paid does not cover this plan' });
     }
 
@@ -100,12 +110,12 @@ router.get('/verify/:reference', protect, authorize('super_admin', 'school_admin
     if (!used.rowCount) {
       const now = new Date();
       const periodEnd = new Date(now);
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
+      periodEnd.setMonth(periodEnd.getMonth() + (PLANS[plan].period_months || 1));
       try {
         await pool.query(
-          `INSERT INTO subscriptions (school_id, plan, status, current_period_start, current_period_end, paystack_reference)
-           VALUES ($1, $2, 'active', $3, $4, $5)`,
-          [meta.school_id, plan, now, periodEnd, reference]
+          `INSERT INTO subscriptions (school_id, plan, status, current_period_start, current_period_end, paystack_reference, amount)
+           VALUES ($1, $2, 'active', $3, $4, $5, $6)`,
+          [meta.school_id, plan, now, periodEnd, reference, Math.round(Number(data.amount) / 100)]
         );
         await pool.query(`UPDATE schools SET subscription_plan=$1 WHERE id=$2`, [plan, meta.school_id]);
       } catch (e) {

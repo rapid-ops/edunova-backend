@@ -90,6 +90,7 @@ app.use('/api/upload', require('./routes/upload.routes'));
 app.use('/api/files', require('./routes/filedelivery.routes'));
 app.use('/api/class-hub', require('./routes/classhub.routes'));
 app.use('/api/upload', require('./routes/schoolimage.routes'));
+app.use('/api/owner', require('./routes/owner.routes'));
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: ORIGINS, credentials: true } });
 app.set('io', io);
